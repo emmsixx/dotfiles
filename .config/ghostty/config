@@ -1,0 +1,25 @@
+custom-shader = shaders/cursor_smear.glsl
+
+# Colors
+foreground = #dddddd
+background = #0c0d0f
+cursor-color = #dddddd
+
+# Text
+font-size = 13
+
+# Font
+font-family = GoogleSansCode Nerd Font Mono
+
+font-family = GoogleSansCode Nerd Font Mono
+font-style = SemiBold
+font-style-bold = Bold
+font-style-italic = Italic
+font-style-bold-italic = ExtraBold
+
+# Background opacity
+background-opacity = 0.3
+
+# Padding
+window-padding-x = 4
+window-padding-y = 4
