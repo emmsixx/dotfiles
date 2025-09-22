@@ -11,3 +11,4 @@ For the dotfiles to function properly, install the following.
   [fd-find](https://github.com/sharkdp/fd#installation)
 - Clipboard tool (xclip/xsel/win32yank or other depending on the platform)
 - [GoogleSansCode Nerd Font](https://github.com/E-Vertin/GoogleSansCode-NerdFont)
+- [oh-my-tmux](https://github.com/gpakosz/.tmux)
