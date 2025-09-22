@@ -1,0 +1,28 @@
+# ~/.gitconfig (generated)
+
+# Fallback defaults
+[user]
+    name = M6
+    email = m6@m6.wtf
+
+# Usability defaults
+[init]
+    defaultBranch = main
+[pull]
+    rebase = false
+[push]
+    default = simple
+[core]
+    editor = nvim
+[color]
+    ui = auto
+
+# Conditional identities by directory (portable via ~)
+[includeIf "gitdir:~/repos/GitHub"]
+    path = ~/.config/git/identities/github_personal.gitconfig
+
+[includeIf "gitdir:~/repos/Work"]
+    path = ~/.config/git/identities/work.gitconfig
+
+[includeIf "gitdir:~/repos/GitLab"]
+    path = ~/.config/git/identities/gitlab.gitconfig
