@@ -5,6 +5,9 @@ export EDITOR="nvim"
 export VISUAL="nvim"
 export ZSH="$HOME/.oh-my-zsh"
 
+# secrets
+[ -f ~/.secrets ] && source ~/.secrets
+
 ZSH_THEME="gozilla" # set by `omz`
 
 plugins=(
