@@ -42,8 +42,10 @@ alias l='ls -l'
 alias la='ls -a'
 alias lla='ls -la'
 alias lt='ls --tree'
-alias spt='spotify_player'
 alias n='nvim'
+alias b="bat"
+alias cc=claude
+alias ccsp="claude --dangerously-skip-permissions"
 
 # Set-up FZF key bindings (CTRL R for fuzzy history finder)
 source <(fzf --zsh)
