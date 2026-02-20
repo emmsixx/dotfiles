@@ -13,3 +13,33 @@ For the dotfiles to function properly, install the following.
 - Clipboard tool (xclip/xsel/win32yank or other depending on the platform)
 - [GoogleSansCode Nerd Font](https://github.com/E-Vertin/GoogleSansCode-NerdFont)
 - [oh-my-tmux](https://github.com/gpakosz/.tmux)
+
+
+## Code Style
+
+- Shell scripts should be POSIX-compliant where possible
+- Use 4-space indentation for shell scripts
+- Avoid inline comments unless necessary
+
+
+## Key Aliases
+
+| Alias | Command |
+|-------|---------|
+| `n` | nvim |
+| `b` | bat |
+| `ls` | lsd |
+| `cc` | claude |
+| `kc` | kilo |
+
+
+## Structure
+
+```
+dotfiles/
+├── .config/       # Application configurations
+├── .scripts/      # Utility shell scripts
+├── .zshrc         # Zsh configuration
+├── .gitconfig     # Git configuration
+└── .gitignore
+```

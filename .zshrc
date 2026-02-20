@@ -46,6 +46,8 @@ alias n='nvim'
 alias b="bat"
 alias cc=claude
 alias ccsp="claude --dangerously-skip-permissions"
+alias kc=kilo
+
 
 # Set-up FZF key bindings (CTRL R for fuzzy history finder)
 source <(fzf --zsh)
