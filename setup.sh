@@ -56,6 +56,8 @@ try_install yazi
 try_install carapace
 try_install spf superfile
 try_install git-lfs
+try_install rg ripgrep
+try_install fd
 
 if [ "$OS" = "Darwin" ]; then
     try_install ghostty

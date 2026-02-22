@@ -15,15 +15,11 @@ This will install all dependencies, set up Oh My Zsh and plugins, install Claude
 
 
 ## Requirements
-For the dotfiles to function properly, install the following.
 
-- Basic utils: `git`, `make`, `unzip`, C Compiler (`gcc`)
-- [ripgrep](https://github.com/BurntSushi/ripgrep#installation),
-  [fd-find](https://github.com/sharkdp/fd#installation)
-  [lsd](https://github.com/lsd-rs/lsd#installation)
-- Clipboard tool (xclip/xsel/win32yank or other depending on the platform)
+The setup script handles most dependencies automatically. Install these manually:
+
 - [GoogleSansCode Nerd Font](https://github.com/E-Vertin/GoogleSansCode-NerdFont)
-- [oh-my-tmux](https://github.com/gpakosz/.tmux)
+- Clipboard tool (`wl-clipboard` on Wayland, `pbcopy` built-in on macOS)
 
 
 ## Code Style
