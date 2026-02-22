@@ -31,6 +31,7 @@ For the dotfiles to function properly, install the following.
 | `ls` | lsd |
 | `cc` | claude |
 | `kc` | kilo |
+| `y` | yazi |
 
 
 ## Claude Code
