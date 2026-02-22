@@ -30,6 +30,7 @@ For the dotfiles to function properly, install the following.
 | `b` | bat |
 | `ls` | lsd |
 | `cc` | claude |
+| `ccsp` | claude --dangerously-skip-permissions |
 | `kc` | kilo |
 | `y` | yazi |
 
