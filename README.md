@@ -47,7 +47,12 @@ claude plugin install explanatory-output-style@claude-plugins-official
 claude plugin install claude-md-management@claude-plugins-official
 ```
 
-Also add `GH_WORK_USER` and `GH_PERSONAL_USER` to `~/.secrets` — referenced in `CLAUDE.md` but not tracked.
+Also populate `~/.secrets` from the provided template — referenced in `CLAUDE.md` but not tracked:
+
+```sh
+cp .secrets.example ~/.secrets
+# then fill in the values
+```
 
 
 ## Structure
