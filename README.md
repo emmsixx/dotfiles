@@ -33,6 +33,23 @@ For the dotfiles to function properly, install the following.
 | `kc` | kilo |
 
 
+## Claude Code
+
+`settings.json` enables plugins but does not install them. On a new machine, install them manually:
+
+```sh
+claude plugin install frontend-design@claude-plugins-official
+claude plugin install claude-code-setup@claude-plugins-official
+claude plugin install code-review@claude-plugins-official
+claude plugin install feature-dev@claude-plugins-official
+claude plugin install typescript-lsp@claude-plugins-official
+claude plugin install explanatory-output-style@claude-plugins-official
+claude plugin install claude-md-management@claude-plugins-official
+```
+
+Also add `GH_WORK_USER` and `GH_PERSONAL_USER` to `~/.secrets` — referenced in `CLAUDE.md` but not tracked.
+
+
 ## Structure
 
 ```
