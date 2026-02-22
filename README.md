@@ -37,6 +37,7 @@ For the dotfiles to function properly, install the following.
 
 ```
 dotfiles/
+├── .claude/       # Claude Code configuration (CLAUDE.md, settings.json)
 ├── .config/       # Application configurations
 ├── .scripts/      # Utility shell scripts
 ├── .zshrc         # Zsh configuration
