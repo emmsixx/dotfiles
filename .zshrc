@@ -47,6 +47,14 @@ alias b="bat"
 alias cc=claude
 alias ccsp="claude --dangerously-skip-permissions"
 alias kc=kilo
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	yazi "$@" --cwd-file="$tmp"
+	if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+		builtin cd -- "$cwd"
+	fi
+	rm -f -- "$tmp"
+}
 
 
 # Set-up FZF key bindings (CTRL R for fuzzy history finder)
