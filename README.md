@@ -3,6 +3,17 @@
 These are all of my dotfiles, for now it only contains cross-platform software to sync between my MacOS and Linux machines. The plan is to add everything eventually, but for now I'm just keeping it simple.
 
 
+## Setup
+
+```sh
+git clone https://github.com/emmsixx/dotfiles ~/dotfiles
+cd ~/dotfiles
+./setup.sh
+```
+
+This will install stow if missing, initialize submodules, create `~/.secrets` from the template, and symlink everything to `$HOME`.
+
+
 ## Requirements
 For the dotfiles to function properly, install the following.
 
