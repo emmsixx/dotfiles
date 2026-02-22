@@ -11,7 +11,7 @@ cd ~/dotfiles
 ./setup.sh
 ```
 
-This will install stow if missing, initialize submodules, create `~/.secrets` from the template, and symlink everything to `$HOME`.
+This will install all dependencies, set up Oh My Zsh and plugins, install Claude Code and its plugins, initialize submodules, create `~/.secrets` from the template, and symlink everything to `$HOME`.
 
 
 ## Requirements
@@ -48,24 +48,7 @@ For the dotfiles to function properly, install the following.
 
 ## Claude Code
 
-`settings.json` enables plugins but does not install them. On a new machine, install them manually:
-
-```sh
-claude plugin install frontend-design@claude-plugins-official
-claude plugin install claude-code-setup@claude-plugins-official
-claude plugin install code-review@claude-plugins-official
-claude plugin install feature-dev@claude-plugins-official
-claude plugin install typescript-lsp@claude-plugins-official
-claude plugin install explanatory-output-style@claude-plugins-official
-claude plugin install claude-md-management@claude-plugins-official
-```
-
-Also populate `~/.secrets` from the provided template — referenced in `CLAUDE.md` but not tracked:
-
-```sh
-cp .secrets.example ~/.secrets
-# then fill in the values
-```
+`CLAUDE.md` references `GH_WORK_USER` and `GH_PERSONAL_USER` from `~/.secrets`. The setup script copies `.secrets.example` to `~/.secrets` automatically — fill in your values before starting a new shell.
 
 
 ## Structure
