@@ -1,0 +1,64 @@
+// Input device configuration.
+// Find the full list of options on the wiki:
+// https://yalter.github.io/niri/Configuration:-Input
+
+input {
+    keyboard {
+        xkb {
+            layout "us"
+            // If you had variants or options, they would go here, e.g.:
+            // options "grp:win_space_toggle,compose:ralt"
+        }
+
+        // Repeat Rate: 50 | Repeat Delay: 300ms
+        repeat-rate 50
+        repeat-delay 300
+    }
+
+    // Next sections include libinput settings.
+    // Omitting settings disables them, or leaves them at their default values.
+    // All commented-out settings here are examples, not defaults.
+    touchpad {
+        // off
+        tap
+        // dwt
+        // dwtp
+        // drag false
+        // drag-lock
+        natural-scroll
+        // accel-speed 0.2
+        // accel-profile "flat"
+        // scroll-method "two-finger"
+        // disabled-on-external-mouse
+    }
+
+    mouse {
+        // "flat" = Zero Acceleration (Raw Input)
+        accel-profile "flat"
+        
+        // This is now just a linear DPI multiplier, not a curve.
+        // 0.0 = native DPI.
+        // -0.2 = 20% slower than native.
+        accel-speed -0.2 
+    }
+
+    focus-follows-mouse
+
+    trackpoint {
+        // off
+        // natural-scroll
+        // accel-speed 0.2
+        // accel-profile "flat"
+        // scroll-method "on-button-down"
+        // scroll-button 273
+        // scroll-button-lock
+        // middle-emulation
+    }
+
+    // Uncomment this to make the mouse warp to the center of newly focused windows.
+    // warp-mouse-to-focus
+
+    // Focus windows and outputs automatically when moving the mouse into them.
+    // Setting max-scroll-amount="0%" makes it work only on windows already fully on screen.
+    // focus-follows-mouse max-scroll-amount="0%"
+}

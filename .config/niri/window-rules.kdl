@@ -1,0 +1,145 @@
+// Window rules let you adjust behavior for individual windows.
+// Find more information on the wiki:
+// https://yalter.github.io/niri/Configuration:-Window-Rules
+
+// Work around WezTerm's initial configure bug
+// by setting an empty default-column-width.
+
+// Set the overview wallpaper on the backdrop.
+layer-rule {
+  match namespace="^noctalia-overview*"
+  place-within-backdrop true
+}
+
+window-rule {
+    // This regular expression is intentionally made as specific as possible,
+    // since this is the default config, and we want no false positives.
+    // You can get away with just app-id="wezterm" if you want.
+    match app-id=r#"^org\.wezfurlong\.wezterm$"#
+    default-column-width {}
+}
+window-rule {
+  // Rounded corners for a modern look.
+  geometry-corner-radius 8
+
+  // Clips window contents to the rounded corner boundaries.
+  clip-to-geometry true
+}
+
+// Open the Firefox picture-in-picture player as floating by default.
+window-rule {
+    // This app-id regular expression will work for both:
+    // - host Firefox (app-id is "firefox")
+    // - Flatpak Firefox (app-id is "org.mozilla.firefox")
+    match app-id=r#"firefox$"# title="^Picture-in-Picture$"
+    open-floating true
+}
+
+// Example: block out two password managers from screen capture.
+// (This example rule is commented out with a "/-" in front.)
+/-window-rule {
+    match app-id=r#"^org\.keepassxc\.KeePassXC$"#
+    match app-id=r#"^org\.gnome\.World\.Secrets$"#
+
+    block-out-from "screen-capture"
+
+    // Use this instead if you want them visible on third-party screenshot tools.
+    // block-out-from "screencast"
+}
+
+// Example: enable rounded corners for all windows.
+// (This example rule is commented out with a "/-" in front.)
+/-window-rule {
+    geometry-corner-radius 12
+    clip-to-geometry true
+}
+
+// /* ---- 🪟 Window Rules (Corrected) ---- */
+
+// --- 🌐 Browsers (Workspace 2) ---
+// "app-id" matches both Wayland ID and X11 Class automatically.
+window-rule {
+    match app-id=r"([Ff]irefox|[Gg]oogle-chrome|[Bb]rave-browser|[Tt]horium-browser|zen|chromium)"
+    open-on-workspace "2"
+}
+
+// --- 💬 Chat & Socials (Workspace 3) ---
+window-rule {
+    match app-id=r"([Dd]iscord|[Ww]ebCord|[Vv]esktop|[Ee]quibop|[Tt]elegram|signal|slack|[Ww]hatsapp-for-linux|ZapZap)"
+    open-on-workspace "3"
+}
+
+// --- 🎵 Music (Workspace 4) ---
+window-rule {
+    match app-id=r"(spotify|[Cc]ider|youtube-music)"
+    open-on-workspace "4"
+}
+
+// --- 🎮 Games (Workspace 8) ---
+window-rule {
+    match app-id=r"(gamescope|steam_app_|osu!|minecraft)"
+    open-on-workspace "8"
+    open-fullscreen true
+}
+
+// --- 🛍️ Game Launchers (Workspace 5) ---
+window-rule {
+    match app-id=r"([Ss]team|[Ll]utris|heroic)"
+    // Exclude Steam Friends/Settings (which usually have different titles)
+    match title=r"^([Ss]team)$" 
+    open-on-workspace "5"
+}
+
+// --- 📧 Email (Workspace 7) ---
+window-rule {
+    match app-id=r"([Tt]hunderbird|evolution|betterbird)"
+    open-on-workspace "7"
+}
+
+// --- ☁️ Floating Rules ---
+window-rule {
+    match app-id=r"(pavucontrol|nm-connection-editor|blueman-manager|.blueman-manager-wrapped|org.gnome.Calculator|qalculate-gtk|gnome-disks|baobab|wihotspot|file-roller|nwg-look|kvantummanager|qt5ct|qt6ct|yad)"
+    open-floating true
+}
+
+window-rule {
+    match title=r"(Open Files|Save As|Confirm to replace files|File Operation Progress)"
+    open-floating true
+}
+
+window-rule {
+    // Picture-in-Picture
+    match title="Picture-in-Picture"
+    open-floating true
+    min-width 400
+}
+
+// --- 🖼️ Layer Rules (Blurring Backgrounds) ---
+// Niri can blur the background of specific layers (like bars or rofi)
+
+// layer-rule {
+//     match namespace="rofi"
+//     block-out-from "screen" // This mimics "blur" for layer surfaces
+// }
+
+// layer-rule {
+//     match namespace="vicinae"
+//     block-out-from "screen"
+// }
+//
+// layer-rule {
+//     match namespace="waybar"
+//     block-out-from "screen"
+// }
+
+// --- 📸 Satty (Screenshot Annotation) ---
+window-rule {
+    match app-id="com.gabm.satty"
+    open-floating true
+}
+
+// --- 🙈 Ignore Auth Popups (Polkit) ---
+window-rule {
+    match app-id=r"(polkit|org.kde.polkit|sway-audio-idle-inhibit-)"
+    open-floating true
+}

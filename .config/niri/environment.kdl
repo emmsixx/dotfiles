@@ -1,0 +1,9 @@
+environment {
+    // Replaces: exec-once = hyprctl setcursor Bibata-Modern-Ice 24
+    XCURSOR_THEME "Bibata-Modern-Ice"
+    XCURSOR_SIZE "24"
+    
+    // Ensures Wayland apps know they are in Niri
+    XDG_CURRENT_DESKTOP "Niri"
+    XDG_SESSION_TYPE "wayland"
+}

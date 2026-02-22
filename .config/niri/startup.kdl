@@ -1,0 +1,56 @@
+// Add lines like this to spawn processes at startup.
+// Note that running niri as a session supports xdg-desktop-autostart,
+// which may be more convenient to use.
+// See the binds section below for more spawn examples.
+
+// This line starts waybar, a commonly used bar for Wayland compositors.
+// spawn-at-startup "waybar"
+
+// --- 💫 Startup ---
+
+// Core System Utils
+spawn-at-startup "dbus-update-activation-environment" "--systemd" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP"
+spawn-at-startup "swww-daemon" "--format" "xrgb" // Wallpaper Daemon
+
+// Polkit Agent (Authentication Popups)
+// Replaces: $scriptsDir/Polkit.sh (Using direct path is safer on Arch/Cachy)
+spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+
+// Audio Setup (Virtual Mic/Sink)
+spawn-at-startup "pactl" "load-module" "module-null-sink" "sink_name=Source"
+spawn-at-startup "pactl" "load-module" "module-virtual-source" "source_name=VirtualMic" "master=Source.monitor"
+
+// --- 💫 Shell & UI ---
+
+// Noctalia Shell
+// ⚠️ ONLY uncomment this if you did NOT run the systemctl command earlier.
+// spawn-at-startup "qs" "-c" "noctalia-shell"
+
+// Vicinae (Sidebar/Widget Server)
+spawn-at-startup "vicinae" "server"
+
+// System Tray Icons
+spawn-at-startup "nm-applet" "--indicator"
+spawn-at-startup "blueman-applet"
+
+// Clipboard Manager (Cliphist)
+spawn-at-startup "wl-paste" "--type" "text" "--watch" "cliphist" "store"
+spawn-at-startup "wl-paste" "--type" "image" "--watch" "cliphist" "store"
+
+// --- 💫 Apps ---
+
+// OBS (Replay Buffer)
+spawn-at-startup "com.obsproject.Studio" "--startreplaybuffer" "--disable-shutdown-check"
+
+// Communication
+spawn-at-startup "telegram-desktop" "-startintray"
+spawn-at-startup "signal-desktop"
+spawn-at-startup "thunderbird"
+
+// Other
+spawn-at-startup "app.openbubbles.OpenBubbles"
+spawn-at-startup "handy"
+// spawn-at-startup "steam" "-silent"
+
+// To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
+// spawn-sh-at-startup "qs -c ~/source/qs/MyAwesomeShell"
