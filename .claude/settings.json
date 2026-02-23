@@ -1,7 +1,8 @@
 {
   "statusLine": {
     "type": "command",
-    "command": "input=$(cat); dir=$(echo \"$input\" | jq -r '.workspace.current_dir'); name=$(basename \"$dir\"); branch=$(git -C \"$dir\" branch --show-current 2>/dev/null); if [ -n \"$branch\" ]; then printf '➜ %s (%s)' \"$name\" \"$branch\"; else printf '➜ %s' \"$name\"; fi"
+    "command": "bunx -y ccstatusline@latest",
+    "padding": 0
   },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
