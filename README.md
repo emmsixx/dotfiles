@@ -1,6 +1,6 @@
 # Dotfiles
 
-These are all of my dotfiles, for now it only contains cross-platform software to sync between my MacOS and Linux machines. The plan is to add everything eventually, but for now I'm just keeping it simple.
+Personal dotfiles for macOS and Linux, including cross-platform shell config and Linux-specific application themes and settings.
 
 
 ## Setup
