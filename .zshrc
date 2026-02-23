@@ -47,6 +47,20 @@ alias b="bat"
 alias cc=claude
 alias ccsp="claude --dangerously-skip-permissions"
 alias kc=kilo
+function yeet() {
+	if [ -z "$1" ]; then
+		echo "Usage: yeet \"commit message\""
+		return 1
+	fi
+	git add -A
+	echo ""
+	git diff --cached --stat
+	echo ""
+	echo "Commit message: $1"
+	echo ""
+	read "?Press Enter to yeet, Ctrl+C to abort..."
+	git commit -m "$1" && git push
+}
 function y() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
 	yazi "$@" --cwd-file="$tmp"
