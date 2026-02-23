@@ -39,6 +39,7 @@ The setup script handles most dependencies automatically. Install these manually
 | `cc` | claude |
 | `ccsp` | claude --dangerously-skip-permissions |
 | `kc` | kilo |
+| `yeet` | git add, commit, push (interactive) |
 | `y` | yazi |
 
 
