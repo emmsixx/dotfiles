@@ -11,7 +11,7 @@ cd ~/dotfiles
 ./setup.sh
 ```
 
-This will install all dependencies, set up Oh My Zsh and plugins, install Claude Code and its plugins, initialize submodules, create `~/.secrets` from the template, and symlink everything to `$HOME`.
+This will install all dependencies, set up Oh My Zsh and plugins, install Starship, install Claude Code and its plugins, initialize submodules, create `~/.secrets` from the template, and symlink everything to `$HOME`.
 
 
 ## Requirements
