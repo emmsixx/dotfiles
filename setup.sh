@@ -59,6 +59,10 @@ try_install git-lfs
 try_install rg ripgrep
 try_install fd
 try_install starship
+try_install jq
+try_install wget
+try_install curl
+try_install unzip
 
 if [ "$OS" = "Darwin" ]; then
     try_install ghostty
