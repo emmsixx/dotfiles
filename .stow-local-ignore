@@ -2,3 +2,5 @@ README\.md
 LICENSE.*
 setup\.sh
 \.secrets\.example
+\.git
+\.gitmodules
