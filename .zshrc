@@ -8,7 +8,7 @@ export ZSH="$HOME/.oh-my-zsh"
 # secrets
 [ -f ~/.secrets ] && source ~/.secrets
 
-ZSH_THEME="gozilla" # set by `omz`
+ZSH_THEME="" # disabled in favour of starship
 
 plugins=(
     git
@@ -117,4 +117,7 @@ autoload -U compinit && compinit
 export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense' # optional
 zstyle ':completion:*' format $'\e[2;37mCompleting %d\e[m'
 source <(carapace _carapace)
+
+# Starship prompt
+eval "$(starship init zsh)"
 

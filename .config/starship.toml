@@ -1,0 +1,116 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+format = """
+[](fg:#3b4261)\
+$os\
+$username\
+[](bg:#1a1b26 fg:#3b4261)\
+$directory\
+[](fg:#1a1b26 bg:#2d4f67)\
+$git_branch\
+$git_status\
+[](fg:#2d4f67 bg:#1e2030)\
+$nodejs\
+$bun\
+$rust\
+$python\
+$golang\
+[](fg:#1e2030)\
+$fill\
+$cmd_duration\
+$time\
+$line_break\
+$character"""
+
+[os]
+disabled = false
+style = "bg:#3b4261 fg:#c0caf5"
+
+[os.symbols]
+Arch = " "
+Linux = " "
+Macos = " "
+Windows = " "
+
+[username]
+show_always = true
+style_user = "bg:#3b4261 fg:#c0caf5"
+style_root = "bg:#3b4261 fg:#f7768e bold"
+format = '[ $user ]($style)'
+
+[directory]
+style = "bg:#1a1b26 fg:#7aa2f7"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+read_only = " 󰌾"
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = "󰝚 "
+"Pictures" = " "
+"dotfiles" = "󰒓 "
+
+[git_branch]
+symbol = " "
+style = "bg:#2d4f67 fg:#73daca"
+format = '[ $symbol$branch ]($style)'
+
+[git_status]
+style = "bg:#2d4f67 fg:#f7768e"
+format = '[$all_status$ahead_behind]($style)'
+conflicted = "󰩌 "
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+untracked = "?"
+stashed = " "
+modified = "!"
+staged = "+"
+renamed = "»"
+deleted = "✘"
+
+[nodejs]
+symbol = " "
+style = "bg:#1e2030 fg:#41a6b5"
+format = '[ $symbol$version ]($style)'
+
+[bun]
+symbol = " "
+style = "bg:#1e2030 fg:#f7a841"
+format = '[ $symbol$version ]($style)'
+
+[rust]
+symbol = " "
+style = "bg:#1e2030 fg:#e0af68"
+format = '[ $symbol$version ]($style)'
+
+[python]
+symbol = " "
+style = "bg:#1e2030 fg:#bb9af7"
+format = '[ $symbol$version ]($style)'
+
+[golang]
+symbol = " "
+style = "bg:#1e2030 fg:#73daca"
+format = '[ $symbol$version ]($style)'
+
+[cmd_duration]
+min_time = 2_000
+style = "fg:#565f89"
+format = '[$duration]($style) '
+
+[time]
+disabled = false
+time_format = "%R"
+style = "fg:#565f89"
+format = '[ $time]($style) '
+
+[fill]
+symbol = " "
+
+[character]
+success_symbol = '[❯](bold fg:#9ece6a)'
+error_symbol = '[❯](bold fg:#f7768e)'
+vimcmd_symbol = '[❮](bold fg:#e0af68)'
