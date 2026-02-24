@@ -58,6 +58,7 @@ try_install spf superfile
 try_install git-lfs
 try_install rg ripgrep
 try_install fd
+try_install starship
 
 if [ "$OS" = "Darwin" ]; then
     try_install ghostty
