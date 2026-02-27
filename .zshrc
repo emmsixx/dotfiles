@@ -46,6 +46,7 @@ alias n='nvim'
 alias b="bat"
 alias cc=claude
 alias ccsp="claude --dangerously-skip-permissions"
+alias cx=codex
 alias kc=kilo
 function yeet() {
 	if [ -z "$1" ]; then
