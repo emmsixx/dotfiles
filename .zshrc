@@ -122,3 +122,4 @@ source <(carapace _carapace)
 # Starship prompt
 eval "$(starship init zsh)"
 
+export PATH="/opt/homebrew/opt/kleopatra/bin:$PATH"
