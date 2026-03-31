@@ -18,8 +18,10 @@ font-style-italic = Italic
 font-style-bold-italic = ExtraBold
 
 # Background opacity
-background-opacity = 0.3
+background-opacity = 0.8
 
 # Padding
 window-padding-x = 4
 window-padding-y = 4
+
+confirm-close-surface = false
