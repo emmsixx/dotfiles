@@ -13,5 +13,6 @@
     "explanatory-output-style@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true
   },
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "effortLevel": "high"
 }
