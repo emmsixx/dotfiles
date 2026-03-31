@@ -389,6 +389,10 @@ tmux_conf_urlscan_options="--compact --dedupe"
 # start with mouse mode enabled
 set -g mouse on
 
+# new windows/sessions default to ~ (tmux 3.x removed default-path)
+bind c new-window -c "~" #!important
+bind C-c new-session -c "~" #!important
+
 # sesh session manager
 bind-key "T" run-shell "sesh connect \"$(
   sesh list --icons | fzf-tmux -p 80%,70% \
