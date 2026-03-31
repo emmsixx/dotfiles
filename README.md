@@ -11,7 +11,7 @@ cd ~/dotfiles
 ./setup.sh
 ```
 
-This will install all dependencies, set up Oh My Zsh and plugins, install Starship, install Claude Code and its plugins, initialize submodules, create `~/.secrets` from the template, and symlink everything to `$HOME`.
+This will install all dependencies, set up Oh My Zsh and plugins, install Starship, install Claude Code and its plugins, install agent skills, initialize submodules, create `~/.secrets` from the template, and symlink everything to `$HOME`.
 
 
 ## Requirements
@@ -47,6 +47,15 @@ The setup script handles most dependencies automatically. Install these manually
 ## Claude Code
 
 `CLAUDE.md` references `GH_WORK_USER` and `GH_PERSONAL_USER` from `~/.secrets`. The setup script copies `.secrets.example` to `~/.secrets` automatically — fill in your values before starting a new shell.
+
+
+## Skills
+
+Agent skills live at [emmsixx/skills](https://github.com/emmsixx/skills) and are installed automatically by `setup.sh` via [skills.sh](https://skills.sh/). To install manually:
+
+```sh
+npx skills add emmsixx/skills
+```
 
 
 ## Structure

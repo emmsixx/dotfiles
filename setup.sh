@@ -161,6 +161,15 @@ else
     warn "Claude not installed — skipping plugin install."
 fi
 
+# ── Agent Skills ─────────────────────────────────────────────────────────────
+
+if has npx; then
+    info "Installing agent skills..."
+    npx skills add emmsixx/skills --no-confirm && ok "emmsixx/skills" || warn "Failed to install skills"
+else
+    warn "npx not found — skipping skills install."
+fi
+
 # ── Git Submodules ────────────────────────────────────────────────────────────
 
 info "Initializing git submodules..."
