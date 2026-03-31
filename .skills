@@ -1,0 +1,7 @@
+# ── Agent Skills ──────────────────────────────────────────────────────────────
+# Add skill repos below, one per line (owner/repo format).
+# Run `npx skills install` to install all, or `npx skills add <owner>/<repo>`
+# to add a single one. See https://skills.sh/ to browse available skills.
+# ──────────────────────────────────────────────────────────────────────────────
+
+emmsixx/skills

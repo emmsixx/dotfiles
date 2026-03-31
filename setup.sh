@@ -161,11 +161,28 @@ else
     warn "Claude not installed — skipping plugin install."
 fi
 
-# ── Agent Skills ─────────────────────────────────────────────────────────────
+# ── Codex ─────────────────────────────────────────────────────────────────────
+
+if ! has codex; then
+    info "Installing Codex..."
+    if [ "$OS" = "Darwin" ]; then
+        brew install --cask codex && ok "codex" || warn "Failed to install codex via brew"
+    elif has npm; then
+        npm install -g @openai/codex && ok "codex" || warn "Failed to install codex via npm"
+    else
+        warn "Cannot install Codex — install manually: npm install -g @openai/codex"
+    fi
+else
+    skip "codex"
+fi
+
+# ── Agent Skills ──────────────────────────────────────────────────────────────
+# Skills are declared in .skills — edit that file to add or remove skill repos.
+# ─────────────────────────────────────────────────────────────────────────────
 
 if has npx; then
     info "Installing agent skills..."
-    npx skills add emmsixx/skills --no-confirm && ok "emmsixx/skills" || warn "Failed to install skills"
+    npx skills install --no-confirm && ok "agent skills" || warn "Failed to install agent skills"
 else
     warn "npx not found — skipping skills install."
 fi

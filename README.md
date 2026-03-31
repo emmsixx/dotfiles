@@ -51,10 +51,10 @@ The setup script handles most dependencies automatically. Install these manually
 
 ## Skills
 
-Agent skills live at [emmsixx/skills](https://github.com/emmsixx/skills) and are installed automatically by `setup.sh` via [skills.sh](https://skills.sh/). To install manually:
+Skills are declared in `.skills` and installed automatically by `setup.sh` via [skills.sh](https://skills.sh/). To add a new skill repo, append it to `.skills` and run:
 
 ```sh
-npx skills add emmsixx/skills
+npx skills install
 ```
 
 
