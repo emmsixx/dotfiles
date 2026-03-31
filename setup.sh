@@ -182,7 +182,13 @@ fi
 
 if has npx; then
     info "Installing agent skills..."
-    npx skills install --no-confirm && ok "agent skills" || warn "Failed to install agent skills"
+    while IFS= read -r line; do
+        repo="${line%%#*}"           # strip inline comments
+        repo="${repo#"${repo%%[![:space:]]*}"}"  # ltrim
+        repo="${repo%"${repo##*[![:space:]]}"}"  # rtrim
+        [ -z "$repo" ] && continue
+        npx skills add "$repo" -y && ok "$repo" || warn "Failed to install: $repo"
+    done < "$DOTFILES_DIR/.skills"
 else
     warn "npx not found — skipping skills install."
 fi
