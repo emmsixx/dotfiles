@@ -5,3 +5,10 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 emmsixx/skills
+anthropics/skills           # frontend-design
+vercel-labs/skills          # find-skills
+vercel-labs/agent-skills    # vercel-react-best-practices, web-design-guidelines, vercel-react-native-skills
+vercel-labs/agent-browser   # agent-browser
+remotion-dev/skills         # remotion-best-practices
+shadcn/ui                   # shaden
+sveltejs/ai-tools           # svelte-code-writer, svelte-core-bestpractices
