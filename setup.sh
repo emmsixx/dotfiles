@@ -153,6 +153,7 @@ if has claude; then
         typescript-lsp@claude-plugins-official
         explanatory-output-style@claude-plugins-official
         claude-md-management@claude-plugins-official
+        svelte
     )
     for plugin in "${PLUGINS[@]}"; do
         claude plugin install "$plugin" && ok "$plugin" || warn "Failed to install $plugin"
@@ -187,10 +188,34 @@ if has npx; then
         repo="${repo#"${repo%%[![:space:]]*}"}"  # ltrim
         repo="${repo%"${repo##*[![:space:]]}"}"  # rtrim
         [ -z "$repo" ] && continue
-        npx skills add "$repo" -y && ok "$repo" || warn "Failed to install: $repo"
+        npx -y skills add "$repo" -y && ok "$repo" || warn "Failed to install: $repo"
     done < "$DOTFILES_DIR/.skills"
 else
     warn "npx not found — skipping skills install."
+fi
+
+# ── Codex Skills ──────────────────────────────────────────────────────────────
+
+mkdir -p "$HOME/.codex/instructions"
+
+if [ ! -d "$HOME/.codex/instructions/Uncodixfy" ]; then
+    info "Installing Uncodixfy (Codex) skill..."
+    git clone https://github.com/cyxzdev/Uncodixfy.git "$HOME/.codex/instructions/Uncodixfy"
+    ok "Uncodixfy"
+else
+    skip "Uncodixfy"
+fi
+
+# ── Claude Code Skills ────────────────────────────────────────────────────────
+
+mkdir -p "$HOME/.claude/skills"
+
+if [ ! -d "$HOME/.claude/skills/humanizer" ]; then
+    info "Installing humanizer skill..."
+    git clone https://github.com/blader/humanizer.git "$HOME/.claude/skills/humanizer"
+    ok "humanizer"
+else
+    skip "humanizer"
 fi
 
 # ── Git Submodules ────────────────────────────────────────────────────────────
