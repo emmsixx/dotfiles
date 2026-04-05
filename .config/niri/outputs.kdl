@@ -52,7 +52,7 @@ output "DP-2" {
 // ViewSonic VX2728-QHD (Right Monitor)
 output "DP-1" {
     // 2560x1440 at ~165Hz
-    mode "2560x1440@165.002"
+    mode "2560x1440@180.002"
 
     // Position: Placed directly to the right of the 1920px wide MSI monitor
     position x=1920 y=0

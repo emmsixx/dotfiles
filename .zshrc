@@ -80,6 +80,11 @@ HISTSIZE=10000
 SAVEHIST=10000
 setopt appendhistory
 
+# Homebrew (Linux, macOS Apple Silicon, macOS Intel)
+for brew_prefix in /home/linuxbrew/.linuxbrew /opt/homebrew /usr/local; do
+    [[ -x "$brew_prefix/bin/brew" ]] && eval "$("$brew_prefix/bin/brew" shellenv zsh)" && break
+done
+
 # More PATH stuff
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.cargo/bin:$PATH"
@@ -123,3 +128,6 @@ source <(carapace _carapace)
 eval "$(starship init zsh)"
 
 export PATH="/opt/homebrew/opt/kleopatra/bin:$PATH"
+
+# Vite+ bin (https://viteplus.dev)
+. "$HOME/.vite-plus/env"
