@@ -12,3 +12,5 @@ vercel-labs/agent-browser   # agent-browser
 remotion-dev/skills         # remotion-best-practices
 shadcn/ui                   # shadcn
 sveltejs/ai-tools           # svelte-code-writer, svelte-core-bestpractices
+blader/humanizer            # humanizer
+cyxzdev/Uncodixfy           # uncodixfy

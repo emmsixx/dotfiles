@@ -4,3 +4,7 @@ setup\.sh
 \.secrets\.example
 \.git
 \.gitmodules
+\.agents
+\.skills
+^skills$
+^skills-lock\.json$

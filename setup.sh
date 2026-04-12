@@ -35,6 +35,60 @@ try_install() {
     if has "$binary"; then skip "$binary"; else info "Installing $binary..."; pkg_install "$package"; ok "$binary"; fi
 }
 
+BACKUP_DIR=""
+
+ensure_backup_dir() {
+    if [ -z "$BACKUP_DIR" ]; then
+        BACKUP_DIR="$HOME/.dotfiles-backups/$(date +%Y%m%d-%H%M%S)"
+        mkdir -p "$BACKUP_DIR"
+    fi
+}
+
+backup_target() {
+    local target="$1" rel dest
+    if [ ! -e "$target" ] && [ ! -L "$target" ]; then
+        return 0
+    fi
+    if [ -L "$target" ]; then
+        return 0
+    fi
+    ensure_backup_dir
+    rel="${target#$HOME/}"
+    dest="$BACKUP_DIR/$rel"
+    mkdir -p "$(dirname "$dest")"
+    mv "$target" "$dest"
+    warn "Moved existing $target to $dest"
+}
+
+backup_generated_children() {
+    local source_dir="$1" target_dir="$2" child
+    if [ ! -d "$source_dir" ] || [ ! -d "$target_dir" ]; then
+        return 0
+    fi
+    for child in "$source_dir"/*; do
+        if [ ! -e "$child" ] && [ ! -L "$child" ]; then
+            continue
+        fi
+        backup_target "$target_dir/$(basename "$child")"
+    done
+}
+
+link_generated_children() {
+    local source_dir="$1" target_dir="$2" child name
+    if [ ! -d "$source_dir" ]; then
+        return 0
+    fi
+    mkdir -p "$target_dir"
+    for child in "$source_dir"/*; do
+        if [ ! -e "$child" ] && [ ! -L "$child" ]; then
+            continue
+        fi
+        name="$(basename "$child")"
+        rm -rf "$target_dir/$name"
+        ln -s "$child" "$target_dir/$name"
+    done
+}
+
 # ── Core Tools ────────────────────────────────────────────────────────────────
 
 info "Checking core tools..."
@@ -179,43 +233,29 @@ fi
 
 # ── Agent Skills ──────────────────────────────────────────────────────────────
 # Skills are declared in .skills — edit that file to add or remove skill repos.
+# Generated skill artifacts stay local to the dotfiles repo and are gitignored.
 # ─────────────────────────────────────────────────────────────────────────────
 
 if has npx; then
     info "Installing agent skills..."
-    while IFS= read -r line; do
-        repo="${line%%#*}"           # strip inline comments
-        repo="${repo#"${repo%%[![:space:]]*}"}"  # ltrim
-        repo="${repo%"${repo##*[![:space:]]}"}"  # rtrim
-        [ -z "$repo" ] && continue
-        npx -y skills add "$repo" -y && ok "$repo" || warn "Failed to install: $repo"
-    done < "$DOTFILES_DIR/.skills"
+    (
+        cd "$DOTFILES_DIR"
+        while IFS= read -r line; do
+            repo="${line%%#*}"
+            repo="${repo#"${repo%%[![:space:]]*}"}"
+            repo="${repo%"${repo##*[![:space:]]}"}"
+            [ -z "$repo" ] && continue
+            npx -y skills add "$repo" -y </dev/null && ok "$repo" || warn "Failed to install: $repo"
+        done < "$DOTFILES_DIR/.skills"
+
+        mkdir -p "$DOTFILES_DIR/.codex/instructions"
+        if [ -d "$DOTFILES_DIR/.agents/skills/uncodixfy" ]; then
+            ln -sfn ../../.agents/skills/uncodixfy "$DOTFILES_DIR/.codex/instructions/Uncodixfy"
+            ok "Uncodixfy (Codex)"
+        fi
+    )
 else
     warn "npx not found — skipping skills install."
-fi
-
-# ── Codex Skills ──────────────────────────────────────────────────────────────
-
-mkdir -p "$HOME/.codex/instructions"
-
-if [ ! -d "$HOME/.codex/instructions/Uncodixfy" ]; then
-    info "Installing Uncodixfy (Codex) skill..."
-    git clone https://github.com/cyxzdev/Uncodixfy.git "$HOME/.codex/instructions/Uncodixfy"
-    ok "Uncodixfy"
-else
-    skip "Uncodixfy"
-fi
-
-# ── Claude Code Skills ────────────────────────────────────────────────────────
-
-mkdir -p "$HOME/.claude/skills"
-
-if [ ! -d "$HOME/.claude/skills/humanizer" ]; then
-    info "Installing humanizer skill..."
-    git clone https://github.com/blader/humanizer.git "$HOME/.claude/skills/humanizer"
-    ok "humanizer"
-else
-    skip "humanizer"
 fi
 
 # ── Git Submodules ────────────────────────────────────────────────────────────
@@ -234,11 +274,32 @@ else
     skip "~/.secrets"
 fi
 
+# ── Prepare stow targets ─────────────────────────────────────────────────────
+
+info "Preparing stow targets..."
+backup_target "$HOME/.claude/CLAUDE.md"
+backup_target "$HOME/.claude/settings.json"
+backup_target "$HOME/.pi/agent/settings.json"
+backup_target "$HOME/.codex/config.toml"
+backup_target "$HOME/.codex/rules/default.rules"
+backup_generated_children "$DOTFILES_DIR/.claude/skills" "$HOME/.claude/skills"
+backup_generated_children "$DOTFILES_DIR/.pi/skills" "$HOME/.pi/skills"
+backup_generated_children "$DOTFILES_DIR/.codex/instructions" "$HOME/.codex/instructions"
+ok "stow targets"
+
 # ── Stow dotfiles ────────────────────────────────────────────────────────────
 
 info "Stowing dotfiles..."
 stow -d "$DOTFILES_DIR" -t "$TARGET_DIR" .
 ok "dotfiles"
+
+# ── Link generated skills ────────────────────────────────────────────────────
+
+info "Linking generated skills..."
+link_generated_children "$DOTFILES_DIR/.claude/skills" "$HOME/.claude/skills"
+link_generated_children "$DOTFILES_DIR/.pi/skills" "$HOME/.pi/skills"
+link_generated_children "$DOTFILES_DIR/.codex/instructions" "$HOME/.codex/instructions"
+ok "skills"
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 
