@@ -6,6 +6,8 @@
 #         without any warranty.
 #         Copyright 2012— Gregory Pakosz (@gpakosz).
 
+set -g extended-keys on
+
 
 # -- bindings ------------------------------------------------------------------
 
