@@ -117,6 +117,7 @@ try_install jq
 try_install wget
 try_install curl
 try_install unzip
+try_install ffmpeg
 
 if [ "$OS" = "Darwin" ]; then
     try_install ghostty
@@ -193,6 +194,19 @@ if ! has claude; then
     ok "claude"
 else
     skip "claude"
+fi
+
+# ── Pi ────────────────────────────────────────────────────────────────────────
+
+if ! has pi; then
+    info "Installing Pi..."
+    if has npm; then
+        npm install -g @mariozechner/pi-coding-agent && ok "pi" || warn "Failed to install pi via npm"
+    else
+        warn "Cannot install Pi — install manually: npm install -g @mariozechner/pi-coding-agent"
+    fi
+else
+    skip "pi"
 fi
 
 # ── Claude Code Plugins ───────────────────────────────────────────────────────
@@ -306,5 +320,6 @@ ok "skills"
 echo ""
 info "All done!"
 echo "  · Fill in ~/.secrets with your credentials"
+echo "  · Run 'pi' and '/login' if you want to use your existing Pi subscription"
 echo "  · Install Claude Code plugins (see README)"
 echo "  · Restart your shell or: source ~/.zshrc"

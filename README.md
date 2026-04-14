@@ -11,7 +11,7 @@ cd ~/dotfiles
 ./setup.sh
 ```
 
-This will install all dependencies, set up Oh My Zsh and plugins, install Starship, install Claude Code and its plugins, install agent skills into the dotfiles repo, initialize submodules, create `~/.secrets` from the template, and symlink the tracked configs plus generated agent skill links into `$HOME`.
+This will install all dependencies, set up Oh My Zsh and plugins, install Starship, install Claude Code and its plugins, install Pi, install agent skills into the dotfiles repo, initialize submodules, create `~/.secrets` from the template, and symlink the tracked configs plus generated agent skill links into `$HOME`.
 
 
 ## Requirements
@@ -48,6 +48,10 @@ The setup script handles most dependencies automatically. Install these manually
 
 `CLAUDE.md` references `GH_WORK_USER` and `GH_PERSONAL_USER` from `~/.secrets`. The setup script copies `.secrets.example` to `~/.secrets` automatically — fill in your values before starting a new shell.
 
+## Pi
+
+`setup.sh` installs Pi with `npm install -g @mariozechner/pi-coding-agent`. After installation, run `pi` and use `/login` if you want to authenticate with your existing subscription instead of an API key.
+
 
 ## Skills
 
@@ -64,6 +68,12 @@ To add a new skill repo, append it to `.skills` and rerun:
 ./setup.sh
 ```
 
+
+## Future Plans / Ideas
+
+- Switch to `varlock` / `infiscal` for environment variable and secret handling
+- Add an interactive CLI for setup and maintenance tasks
+- Potentially prompt for environment variables during setup, though this may be more annoying than helpful
 
 ## Structure
 
