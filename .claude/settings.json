@@ -1,5 +1,5 @@
 {
-  "model": "opus",
+  "model": "claude-fable-5[1m]",
   "statusLine": {
     "type": "command",
     "command": "bunx -y ccstatusline@latest",
@@ -24,5 +24,6 @@
     }
   },
   "effortLevel": "high",
+  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true
 }

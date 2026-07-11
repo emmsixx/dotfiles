@@ -1,7 +1,10 @@
 {
-  "lastChangelogVersion": "0.66.1",
+  "lastChangelogVersion": "0.80.6",
   "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.4",
+  "defaultModel": "gpt-5.6-sol",
   "defaultThinkingLevel": "high",
-  "skills": ["~/.pi/skills"]
+  "skills": [
+    "~/.pi/skills"
+  ],
+  "theme": "dark"
 }

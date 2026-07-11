@@ -92,16 +92,16 @@ export PATH="$HOME/.cargo/bin:$PATH"
 # Zoxide Init
 eval "$(zoxide init zsh)"
 
-# Auto-attach to tmux main session if not already inside tmux
-if [ -z "$TMUX" ]; then
+# Auto-attach to tmux main session if not already inside tmux or cmux
+if [ -z "$TMUX" ] && [ -z "$CMUX_BUNDLE_ID" ]; then
     tmux new-session -A -s main
 fi
 
 # pnpm
 export PNPM_HOME="$HOME/.local/share/pnpm"
 case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
+  *":$PNPM_HOME/bin:"*) ;;
+  *) export PATH="$PNPM_HOME/bin:$PATH" ;;
 esac
 # pnpm end
 
@@ -130,4 +130,6 @@ eval "$(starship init zsh)"
 export PATH="/opt/homebrew/opt/kleopatra/bin:$PATH"
 
 # Vite+ bin (https://viteplus.dev)
-. "$HOME/.vite-plus/env"
+# Disabled to avoid Vite+ overriding your global node/npm versions.
+# Use manually when needed:
+#   . "$HOME/.vite-plus/env"

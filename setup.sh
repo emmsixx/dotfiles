@@ -245,6 +245,19 @@ else
     skip "codex"
 fi
 
+# ── Firecrawl ─────────────────────────────────────────────────────────────────
+
+if ! has firecrawl; then
+    info "Installing Firecrawl CLI..."
+    if has npm; then
+        npm install -g firecrawl-cli && ok "firecrawl" || warn "Failed to install Firecrawl CLI via npm"
+    else
+        warn "Cannot install Firecrawl CLI — install manually: npm install -g firecrawl-cli"
+    fi
+else
+    skip "firecrawl"
+fi
+
 # ── Agent Skills ──────────────────────────────────────────────────────────────
 # Skills are declared in .skills — edit that file to add or remove skill repos.
 # Generated skill artifacts stay local to the dotfiles repo and are gitignored.
