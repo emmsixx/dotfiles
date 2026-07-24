@@ -100,7 +100,9 @@ function y() {
 
 # Set-up FZF key bindings (CTRL R for fuzzy history finder)
 if command -v fzf >/dev/null 2>&1; then
-    source <(fzf --zsh)
+    if fzf_zsh="$(fzf --zsh 2>/dev/null)"; then
+        source <(printf '%s\n' "$fzf_zsh")
+    fi
 fi
 
 HISTFILE=~/.zsh_history

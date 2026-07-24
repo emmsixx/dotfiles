@@ -27,7 +27,7 @@ This will install the selected dependencies, set up Oh My Zsh and plugins, insta
 The setup script handles most dependencies automatically. Install these manually:
 
 - [GoogleSansCode Nerd Font](https://github.com/E-Vertin/GoogleSansCode-NerdFont)
-- Clipboard tool (`wl-clipboard` on Wayland, `pbcopy` built-in on macOS)
+- Clipboard tool (`pbcopy` is built in on macOS; setup attempts `wl-clipboard` on Linux Wayland and falls back to a manual install if unavailable)
 
 
 ## Code Style
@@ -66,7 +66,7 @@ Skills are declared in `.skills` and installed automatically by `setup.sh` via [
 
 - Skill contents are installed locally into `.agents/skills` and are not committed.
 - Generated Claude/Pi skill links are also ignored and linked into `$HOME` by setup.
-- `skills-lock.json` is tracked so installs can be verified and reproduced.
+- `skills-lock.json` is tracked with installed skill source and hash metadata; setup uses it to prune stale generated skills.
 
 To add a new skill repo, append it to `.skills` and rerun:
 

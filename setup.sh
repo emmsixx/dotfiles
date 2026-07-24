@@ -94,6 +94,15 @@ else
     warn "Unknown package manager — install packages manually."
 fi
 
+if [ "$PACKAGE_MANAGER" = "apt" ]; then
+    info "Refreshing APT package lists..."
+    if run_as_root apt-get update; then
+        ok "APT package lists"
+    else
+        warn "APT package list refresh failed; package installation may be incomplete."
+    fi
+fi
+
 package_available() {
     local package="$1"
     case "$PACKAGE_MANAGER" in
@@ -137,6 +146,19 @@ try_install() {
     fi
 }
 
+try_cask_install() {
+    local binary="$1" package="${2:-$1}"
+
+    if has "$binary"; then
+        skip "$binary"
+    elif [ "$PACKAGE_MANAGER" = "brew" ] && brew info --cask "$package" &>/dev/null; then
+        info "Installing $binary..."
+        brew install --cask "$package" && ok "$binary" || warn "Failed to install $binary"
+    else
+        warn "No installable $package cask is available — install $binary manually."
+    fi
+}
+
 try_aur_install() {
     local binary="$1" package="${2:-$1}"
 
@@ -153,6 +175,21 @@ try_aur_install() {
     fi
 }
 
+require_tools() {
+    local missing=() tool
+
+    for tool in "$@"; do
+        if ! has "$tool"; then
+            missing+=("$tool")
+        fi
+    done
+
+    if [ "${#missing[@]}" -gt 0 ]; then
+        warn "Required tools are missing: ${missing[*]}"
+        return 1
+    fi
+}
+
 BACKUP_DIR=""
 
 ensure_backup_dir() {
@@ -163,19 +200,68 @@ ensure_backup_dir() {
 }
 
 backup_target() {
-    local target="$1" rel dest
+    local target="$1" force="${2:-}" rel dest suffix
     if [ ! -e "$target" ] && [ ! -L "$target" ]; then
         return 0
     fi
-    if [ -L "$target" ]; then
+    if [ -L "$target" ] && [ "$force" != "force" ]; then
         return 0
     fi
+
     ensure_backup_dir
     rel="${target#$HOME/}"
     dest="$BACKUP_DIR/$rel"
+    if [ -e "$dest" ] || [ -L "$dest" ]; then
+        suffix=1
+        while [ -e "$dest.$suffix" ] || [ -L "$dest.$suffix" ]; do
+            suffix=$((suffix + 1))
+        done
+        dest="$dest.$suffix"
+    fi
     mkdir -p "$(dirname "$dest")"
     mv "$target" "$dest"
     warn "Moved existing $target to $dest"
+}
+
+has_symlink_ancestor() {
+    local path="$1" parent
+    parent="$(dirname "$path")"
+    while [ "$parent" != "$HOME" ] && [ "$parent" != "/" ]; do
+        if [ -L "$parent" ]; then
+            return 0
+        fi
+        parent="$(dirname "$parent")"
+    done
+    return 1
+}
+
+prepare_stow_targets() {
+    local source target source_dir
+
+    # Unlink existing managed directories before inspecting their children.
+    for source_dir in "$DOTFILES_DIR/.config" "$DOTFILES_DIR/.config"/* "$DOTFILES_DIR/.claude" "$DOTFILES_DIR/.pi" "$DOTFILES_DIR/.scripts"; do
+        source="${source_dir#$DOTFILES_DIR/}"
+        target="$HOME/$source"
+        if [ -L "$target" ]; then
+            backup_target "$target" force
+        fi
+    done
+
+    # These are ignored by Stow and should never be moved into the backup.
+    while IFS= read -r source; do
+        case "$source" in
+            README.md|LICENSE|setup.sh|setup-server.sh|.secrets.example|.gitmodules|.skills|.node-version|skills-lock.json|.stow-local-ignore)
+                continue
+                ;;
+        esac
+
+        target="$HOME/$source"
+        if [ -e "$DOTFILES_DIR/$source" ] || [ -L "$DOTFILES_DIR/$source" ]; then
+            if ! has_symlink_ancestor "$target"; then
+                backup_target "$target" force
+            fi
+        fi
+    done < <(git -C "$DOTFILES_DIR" ls-files)
 }
 
 backup_generated_children() {
@@ -221,7 +307,18 @@ link_generated_children() {
             continue
         fi
         name="$(basename "$child")"
-        rm -rf "$target_dir/$name"
+        if [ -L "$target_dir/$name" ]; then
+            link_target="$(readlink "$target_dir/$name")"
+            case "$link_target" in
+                "$source_dir"/*) rm -f "$target_dir/$name" ;;
+                *)
+                    warn "Preserving unrelated symlink $target_dir/$name"
+                    continue
+                    ;;
+            esac
+        elif [ -e "$target_dir/$name" ]; then
+            backup_target "$target_dir/$name"
+        fi
         ln -s "$child" "$target_dir/$name"
     done
 }
@@ -313,9 +410,13 @@ fi
 try_install starship
 try_install ffmpeg
 
+if ! require_tools curl git stow zsh jq; then
+    exit 1
+fi
+
 if [ "$PROFILE" = "desktop" ]; then
     if [ "$OS" = "Darwin" ]; then
-        try_install ghostty
+        try_cask_install ghostty
     elif [ "$OS" = "Linux" ]; then
         info "Checking Linux Wayland desktop tools..."
         try_install grim
@@ -359,6 +460,12 @@ if [ "$PROFILE" = "desktop" ]; then
 else
     info "Skipping pokemon-colorscripts for the server profile."
 fi
+
+# ── Protect Stow targets before installers ────────────────────────────────────
+
+info "Preparing existing Stow targets..."
+prepare_stow_targets
+ok "pre-install backups"
 
 # ── Oh My Zsh ────────────────────────────────────────────────────────────────
 
@@ -599,9 +706,11 @@ fi
 # ── Prepare stow targets ─────────────────────────────────────────────────────
 
 info "Preparing stow targets..."
-backup_target "$HOME/.claude/CLAUDE.md"
-backup_target "$HOME/.claude/settings.json"
-backup_target "$HOME/.pi/agent/settings.json"
+backup_target "$HOME/.zshrc" force
+backup_target "$HOME/.gitconfig" force
+backup_target "$HOME/.claude/CLAUDE.md" force
+backup_target "$HOME/.claude/settings.json" force
+backup_target "$HOME/.pi/agent/settings.json" force
 backup_generated_children "$DOTFILES_DIR/.claude/skills" "$HOME/.claude/skills"
 backup_generated_children "$DOTFILES_DIR/.pi/skills" "$HOME/.pi/skills"
 ok "stow targets"
