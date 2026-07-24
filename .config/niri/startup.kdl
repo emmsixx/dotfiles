@@ -26,6 +26,9 @@ spawn-at-startup "pactl" "load-module" "module-virtual-source" "source_name=Virt
 // ⚠️ ONLY uncomment this if you did NOT run the systemctl command earlier.
 // spawn-at-startup "qs" "-c" "noctalia-shell"
 
+// Dank Material Shell
+// spawn-at-startup "dms" "run"
+
 // Vicinae (Sidebar/Widget Server)
 spawn-at-startup "vicinae" "server"
 

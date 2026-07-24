@@ -15,3 +15,6 @@ skills-lock.json
 !.codex/config.toml
 !.codex/rules/
 !.codex/rules/default.rules
+
+# DMS-generated niri config
+.config/niri/dms/
