@@ -119,11 +119,17 @@ if command -v zoxide >/dev/null 2>&1; then
     eval "$(zoxide init zsh)"
 fi
 
-# Auto-attach to tmux main session if not already inside tmux or cmux
-if command -v tmux >/dev/null 2>&1 \
+# Auto-attach on desktop installs only. Server profiles must keep SSH and
+# automation sessions as plain shells even if tmux is installed separately.
+_dotfiles_profile_file="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/profile"
+_dotfiles_profile="${DOTFILES_PROFILE:-$(cat "$_dotfiles_profile_file" 2>/dev/null)}"
+if [ "${_dotfiles_profile:-desktop}" = "desktop" ] \
+    && [ -z "$SSH_CONNECTION" ] && [ -z "$SSH_TTY" ] \
+    && command -v tmux >/dev/null 2>&1 \
     && [ -z "$TMUX" ] && [ -z "$CMUX_BUNDLE_ID" ]; then
     tmux new-session -A -s main
 fi
+unset _dotfiles_profile _dotfiles_profile_file
 
 # pnpm
 export PNPM_HOME="$HOME/.local/share/pnpm"

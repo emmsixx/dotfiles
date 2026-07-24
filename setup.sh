@@ -54,6 +54,8 @@ ok()   { printf '\033[1;32m ✓ %s\033[0m\n' "$*"; }
 skip() { printf '\033[2m · %s already installed\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m ! %s\033[0m\n' "$*"; }
 
+PROFILE_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/profile"
+
 # ── OS & Package Manager ──────────────────────────────────────────────────────
 
 OS="$(uname -s)"
@@ -146,6 +148,19 @@ try_install() {
     fi
 }
 
+ensure_command_alias() {
+    local expected="$1" actual="$2"
+
+    if has "$expected" || ! has "$actual"; then
+        return 0
+    fi
+
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$(command -v "$actual")" "$HOME/.local/bin/$expected"
+    export PATH="$HOME/.local/bin:$PATH"
+    ok "$expected command alias"
+}
+
 try_cask_install() {
     local binary="$1" package="${2:-$1}"
 
@@ -191,6 +206,8 @@ require_tools() {
 }
 
 BACKUP_DIR=""
+BACKED_UP_TARGETS=()
+BACKUP_PATHS=()
 
 ensure_backup_dir() {
     if [ -z "$BACKUP_DIR" ]; then
@@ -220,7 +237,32 @@ backup_target() {
     fi
     mkdir -p "$(dirname "$dest")"
     mv "$target" "$dest"
+    BACKED_UP_TARGETS+=("$target")
+    BACKUP_PATHS+=("$dest")
     warn "Moved existing $target to $dest"
+}
+
+restore_stow_targets() {
+    local index target backup
+
+    set +e
+    for ((index=${#BACKED_UP_TARGETS[@]} - 1; index >= 0; index--)); do
+        target="${BACKED_UP_TARGETS[$index]}"
+        backup="${BACKUP_PATHS[$index]}"
+        rm -rf "$target"
+        mkdir -p "$(dirname "$target")"
+        mv "$backup" "$target"
+        warn "Restored $target after setup failure"
+    done
+}
+
+rollback_pending_stow() {
+    local status=$?
+    trap - ERR
+    if [ "${STOW_PENDING:-0}" -eq 1 ]; then
+        restore_stow_targets
+    fi
+    exit "$status"
 }
 
 has_symlink_ancestor() {
@@ -349,11 +391,11 @@ prune_skill_lock() {
 prune_skill_artifacts() {
     local skill_dir name child
 
+    prune_skill_lock
+
     if [ ! -d "$DOTFILES_DIR/.agents/skills" ]; then
         return 0
     fi
-
-    prune_skill_lock
 
     if [ -f "$DOTFILES_DIR/skills-lock.json" ] && has jq; then
         for skill_dir in "$DOTFILES_DIR/.agents/skills"/*; do
@@ -391,7 +433,11 @@ try_install bat bat batcat
 try_install lsd
 try_install fzf
 try_install zoxide
-try_install tmux
+if [ "$PROFILE" = "desktop" ]; then
+    try_install tmux
+else
+    info "Skipping tmux for the server profile."
+fi
 try_install sesh
 try_install lazygit
 try_install btop
@@ -404,6 +450,7 @@ try_install git-lfs
 try_install rg ripgrep
 if [ "$PACKAGE_MANAGER" = "apt" ]; then
     try_install fd fd-find fdfind
+    ensure_command_alias fd fdfind
 else
     try_install fd
 fi
@@ -424,7 +471,11 @@ if [ "$PROFILE" = "desktop" ]; then
         try_install satty
         try_install solaar
         try_install wl-copy wl-clipboard
-        try_install notify-send libnotify
+        if [ "$PACKAGE_MANAGER" = "apt" ]; then
+            try_install notify-send libnotify-bin
+        else
+            try_install notify-send libnotify
+        fi
         try_install file
         if [ "$PACKAGE_MANAGER" = "pacman" ]; then
             try_aur_install dualsensectl
@@ -460,12 +511,6 @@ if [ "$PROFILE" = "desktop" ]; then
 else
     info "Skipping pokemon-colorscripts for the server profile."
 fi
-
-# ── Protect Stow targets before installers ────────────────────────────────────
-
-info "Preparing existing Stow targets..."
-prepare_stow_targets
-ok "pre-install backups"
 
 # ── Oh My Zsh ────────────────────────────────────────────────────────────────
 
@@ -682,10 +727,13 @@ if has npx; then
             npx -y skills add "$repo" -y </dev/null && ok "$repo" || warn "Failed to install: $repo"
         done < "$DOTFILES_DIR/.skills"
     )
-    prune_skill_artifacts
 else
-    warn "npx not found — skipping skills install and pruning."
+    warn "npx not found — skipping skills installation."
 fi
+
+# Pruning only needs the tracked declarations and jq; it must still run when
+# Node.js setup fails so removed skills do not leave stale local artifacts.
+prune_skill_artifacts
 
 # ── Git Submodules ────────────────────────────────────────────────────────────
 
@@ -706,11 +754,11 @@ fi
 # ── Prepare stow targets ─────────────────────────────────────────────────────
 
 info "Preparing stow targets..."
-backup_target "$HOME/.zshrc" force
-backup_target "$HOME/.gitconfig" force
-backup_target "$HOME/.claude/CLAUDE.md" force
-backup_target "$HOME/.claude/settings.json" force
-backup_target "$HOME/.pi/agent/settings.json" force
+# Delay destructive moves until every fallible installer has completed, and
+# roll them back if preparation or Stow itself fails.
+STOW_PENDING=1
+trap rollback_pending_stow ERR
+prepare_stow_targets
 backup_generated_children "$DOTFILES_DIR/.claude/skills" "$HOME/.claude/skills"
 backup_generated_children "$DOTFILES_DIR/.pi/skills" "$HOME/.pi/skills"
 ok "stow targets"
@@ -719,7 +767,14 @@ ok "stow targets"
 
 info "Stowing dotfiles..."
 stow -d "$DOTFILES_DIR" -t "$TARGET_DIR" .
+STOW_PENDING=0
+trap - ERR
 ok "dotfiles"
+
+# Persist the profile only after setup succeeds far enough to install configs.
+# .zshrc uses this to avoid desktop-only behavior on headless machines.
+mkdir -p "$(dirname "$PROFILE_FILE")"
+printf '%s\n' "$PROFILE" > "$PROFILE_FILE"
 
 # ── Link generated skills ────────────────────────────────────────────────────
 

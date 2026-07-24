@@ -17,7 +17,7 @@ For a headless Debian server or homelab VM, use the server profile instead:
 ./setup-server.sh
 ```
 
-The desktop profile installs the full workstation setup. The server profile installs the shared CLI and agent tooling while skipping desktop-specific packages such as Ghostty, Pokémon-colorscripts, and Linux Wayland utilities.
+The desktop profile installs the full workstation setup. The server profile installs the shared CLI and agent tooling while skipping desktop-specific packages such as Ghostty, tmux (including shell auto-attach), Pokémon-colorscripts, and Linux Wayland utilities.
 
 This will install the selected dependencies, set up Oh My Zsh and plugins, install Starship, Claude Code and its plugins, Pi, Codex, and Firecrawl, install agent skills into the dotfiles repo, initialize submodules, create `~/.secrets` from the template, and symlink the tracked configs plus generated agent skill links into `$HOME`.
 
