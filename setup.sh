@@ -429,6 +429,11 @@ try_install wget
 try_install unzip
 try_install gh
 try_install nvim neovim
+if [ "$PACKAGE_MANAGER" = "brew" ]; then
+    try_install tree-sitter tree-sitter
+else
+    try_install tree-sitter tree-sitter-cli
+fi
 try_install bat bat batcat
 try_install lsd
 try_install fzf
