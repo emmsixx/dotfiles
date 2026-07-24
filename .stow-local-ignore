@@ -1,8 +1,11 @@
 README\.md
 LICENSE.*
 setup\.sh
+setup-server\.sh
+\.node-version
 \.secrets\.example
 \.git
+\.DS_Store
 \.gitmodules
 \.agents
 \.skills
