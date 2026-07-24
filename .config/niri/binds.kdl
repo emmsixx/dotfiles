@@ -31,7 +31,7 @@ binds {
     Mod+Alt+Ctrl+Shift+B { spawn "xdg-open" "https://"; }
 
     // HYPER (Super+Alt+Ctrl+Shift) + D -> Discord Client
-    Mod+Alt+Ctrl+Shift+D { spawn "legcord"; }
+    Mod+Alt+Ctrl+Shift+D { spawn "equibop"; }
 
     // HYPER + O -> Obsidian
     Mod+Alt+Ctrl+Shift+O { spawn "obsidian"; }
