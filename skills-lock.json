@@ -7,11 +7,6 @@
       "skillPath": "skills/agent-browser/SKILL.md",
       "computedHash": "a674b7d81066e3cc471a7512ddb4ae724418cbfefa75cbb050b0dc430e4d57a0"
     },
-    "agentcore": {
-      "source": "vercel-labs/agent-browser",
-      "sourceType": "github",
-      "computedHash": "194f6567ad83e506be6a6f29861aec0da3829ecbfdf118c25d5045aa65090108"
-    },
     "algorithmic-art": {
       "source": "anthropics/skills",
       "sourceType": "github",
@@ -53,16 +48,6 @@
       "sourceType": "github",
       "skillPath": "skills/docx/SKILL.md",
       "computedHash": "59c70107f8eae818bdfca7da685a6e4111aa519638b667775b794cb74987ec47"
-    },
-    "dogfood": {
-      "source": "vercel-labs/agent-browser",
-      "sourceType": "github",
-      "computedHash": "c1b1133e43d087a9f97de44c2b8abdd4b6c59364d3ac9c0456b01916d58a55b2"
-    },
-    "electron": {
-      "source": "vercel-labs/agent-browser",
-      "sourceType": "github",
-      "computedHash": "637d08276e7d16c4a4fa1a5d661cb88830ce39679053b74d0b48a7f792667f91"
     },
     "find-skills": {
       "source": "vercel-labs/skills",
@@ -382,11 +367,6 @@
       "skillPath": "skills/skill-creator/SKILL.md",
       "computedHash": "5ea13a6d9f0d4bb694405d79acd00cadec0d21bb138c4dd10fcf3c500cb835c2"
     },
-    "slack": {
-      "source": "vercel-labs/agent-browser",
-      "sourceType": "github",
-      "computedHash": "6304c96ecaf1494e2be424ebb9e52a882ea59b3ee452513764604f349572c7a9"
-    },
     "slack-gif-creator": {
       "source": "anthropics/skills",
       "sourceType": "github",
@@ -452,11 +432,6 @@
       "sourceType": "github",
       "skillPath": "skills/react-view-transitions/SKILL.md",
       "computedHash": "c8952fc9127fa0564d0cb71dccb4215a5608ac933b5831104f09173a97a46f85"
-    },
-    "vercel-sandbox": {
-      "source": "vercel-labs/agent-browser",
-      "sourceType": "github",
-      "computedHash": "d4420f40974fe2964a8198d40998227d3f28c19b7f623b0b0f7422b569ea9ce9"
     },
     "web-artifacts-builder": {
       "source": "anthropics/skills",

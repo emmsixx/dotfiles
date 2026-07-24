@@ -337,7 +337,7 @@ prune_skill_lock() {
             repo="${repo%"${repo##*[![:space:]]}"}"
             [ -n "$repo" ] && printf '%s\n' "$repo"
         done < "$DOTFILES_DIR/.skills" \
-            | jq -R -s 'split("\\n") | map(select(length > 0))'
+            | jq -R -s 'split("\n") | map(select(length > 0))'
     )"
 
     jq --argjson sources "$sources_json" \
