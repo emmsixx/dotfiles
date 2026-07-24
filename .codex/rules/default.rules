@@ -1,3 +1,0 @@
-prefix_rule(pattern=["bun", "add"], decision="allow")
-prefix_rule(pattern=["bun", "create", "astro@latest"], decision="allow")
-prefix_rule(pattern=["git", "worktree", "add"], decision="allow")

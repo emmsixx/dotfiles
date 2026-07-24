@@ -4,6 +4,49 @@ set -e
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_DIR="$HOME"
+PROFILE="${DOTFILES_PROFILE:-desktop}"
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [--profile desktop|server]
+
+Profiles:
+  desktop  Install the full local workstation setup (default)
+  server   Install the cross-platform CLI and agent setup without desktop tools
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --profile)
+            [ "$#" -ge 2 ] || { usage >&2; exit 1; }
+            PROFILE="$2"
+            shift 2
+            ;;
+        --server)
+            PROFILE="server"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            printf 'Unknown argument: %s\n\n' "$1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+case "$PROFILE" in
+    desktop|server) ;;
+    *)
+        printf 'Unknown profile: %s\n\n' "$PROFILE" >&2
+        usage >&2
+        exit 1
+        ;;
+esac
 
 has()  { command -v "$1" &>/dev/null; }
 info() { printf '\033[1;34m==> %s\033[0m\n' "$*"; }
@@ -14,25 +57,100 @@ warn() { printf '\033[1;33m ! %s\033[0m\n' "$*"; }
 # ── OS & Package Manager ──────────────────────────────────────────────────────
 
 OS="$(uname -s)"
+PACKAGE_MANAGER="none"
+
+run_as_root() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    else
+        sudo "$@"
+    fi
+}
 
 if [ "$OS" = "Darwin" ]; then
     if ! has brew; then
         info "Installing Homebrew..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
-    pkg_install() { brew install "$@"; }
+
+    for brew_prefix in /home/linuxbrew/.linuxbrew /opt/homebrew /usr/local; do
+        if [ -x "$brew_prefix/bin/brew" ]; then
+            export PATH="$brew_prefix/bin:$PATH"
+            eval "$("$brew_prefix/bin/brew" shellenv bash)"
+            break
+        fi
+    done
+
+    if has brew; then
+        PACKAGE_MANAGER="brew"
+    else
+        warn "Homebrew is unavailable — install packages manually."
+    fi
 elif has pacman; then
-    pkg_install() { sudo pacman -S --noconfirm "$@"; }
+    PACKAGE_MANAGER="pacman"
 elif has apt-get; then
-    pkg_install() { sudo apt-get install -y "$@"; }
+    PACKAGE_MANAGER="apt"
 else
     warn "Unknown package manager — install packages manually."
-    pkg_install() { warn "Cannot auto-install: $*"; }
 fi
 
+package_available() {
+    local package="$1"
+    case "$PACKAGE_MANAGER" in
+        brew) brew info --formula "$package" &>/dev/null ;;
+        pacman) pacman -Si "$package" &>/dev/null ;;
+        apt) apt-cache show "$package" &>/dev/null ;;
+        *) return 1 ;;
+    esac
+}
+
+pkg_install() {
+    case "$PACKAGE_MANAGER" in
+        brew) brew install "$@" ;;
+        pacman) run_as_root pacman -S --needed --noconfirm "$@" ;;
+        apt) run_as_root apt-get install -y "$@" ;;
+        *)
+            warn "Cannot auto-install: $*"
+            return 1
+            ;;
+    esac
+}
+
 try_install() {
+    local binary="$1" package="${2:-$1}" alternate="${3:-}"
+
+    if has "$binary" || { [ -n "$alternate" ] && has "$alternate"; }; then
+        skip "$binary"
+        return 0
+    fi
+
+    if ! package_available "$package"; then
+        warn "No $package package is available through $PACKAGE_MANAGER — install $binary manually."
+        return 0
+    fi
+
+    info "Installing $binary..."
+    if pkg_install "$package"; then
+        ok "$binary"
+    else
+        warn "Failed to install $binary"
+    fi
+}
+
+try_aur_install() {
     local binary="$1" package="${2:-$1}"
-    if has "$binary"; then skip "$binary"; else info "Installing $binary..."; pkg_install "$package"; ok "$binary"; fi
+
+    if has "$binary"; then
+        skip "$binary"
+    elif has yay; then
+        info "Installing $binary from the AUR..."
+        yay -S --noconfirm "$package" && ok "$binary" || warn "Failed to install $binary"
+    elif has paru; then
+        info "Installing $binary from the AUR..."
+        paru -S --noconfirm "$package" && ok "$binary" || warn "Failed to install $binary"
+    else
+        warn "No AUR helper available — install $binary manually."
+    fi
 }
 
 BACKUP_DIR=""
@@ -74,11 +192,30 @@ backup_generated_children() {
 }
 
 link_generated_children() {
-    local source_dir="$1" target_dir="$2" child name
+    local source_dir="$1" target_dir="$2" child name existing link_target
     if [ ! -d "$source_dir" ]; then
         return 0
     fi
+
     mkdir -p "$target_dir"
+
+    # Remove stale links previously generated from this source directory.
+    for existing in "$target_dir"/*; do
+        if [ ! -L "$existing" ]; then
+            continue
+        fi
+        link_target="$(readlink "$existing")"
+        case "$link_target" in
+            "$source_dir"/*)
+                name="$(basename "$existing")"
+                if [ ! -e "$source_dir/$name" ] && [ ! -L "$source_dir/$name" ]; then
+                    rm "$existing"
+                    warn "Removed stale generated link $existing"
+                fi
+                ;;
+        esac
+    done
+
     for child in "$source_dir"/*; do
         if [ ! -e "$child" ] && [ ! -L "$child" ]; then
             continue
@@ -89,14 +226,71 @@ link_generated_children() {
     done
 }
 
+prune_skill_lock() {
+    local sources_json
+
+    if [ ! -f "$DOTFILES_DIR/skills-lock.json" ] || ! has jq; then
+        return 0
+    fi
+
+    sources_json="$(
+        while IFS= read -r line; do
+            repo="${line%%#*}"
+            repo="${repo#"${repo%%[![:space:]]*}"}"
+            repo="${repo%"${repo##*[![:space:]]}"}"
+            [ -n "$repo" ] && printf '%s\n' "$repo"
+        done < "$DOTFILES_DIR/.skills" \
+            | jq -R -s 'split("\\n") | map(select(length > 0))'
+    )"
+
+    jq --argjson sources "$sources_json" \
+        '.skills |= with_entries(select(.value.source as $source | $sources | index($source)))' \
+        "$DOTFILES_DIR/skills-lock.json" > "$DOTFILES_DIR/skills-lock.json.tmp"
+    mv "$DOTFILES_DIR/skills-lock.json.tmp" "$DOTFILES_DIR/skills-lock.json"
+}
+
+prune_skill_artifacts() {
+    local skill_dir name child
+
+    if [ ! -d "$DOTFILES_DIR/.agents/skills" ]; then
+        return 0
+    fi
+
+    prune_skill_lock
+
+    if [ -f "$DOTFILES_DIR/skills-lock.json" ] && has jq; then
+        for skill_dir in "$DOTFILES_DIR/.agents/skills"/*; do
+            if [ ! -d "$skill_dir" ]; then
+                continue
+            fi
+            name="$(basename "$skill_dir")"
+            if ! jq -e --arg name "$name" '.skills[$name]' "$DOTFILES_DIR/skills-lock.json" &>/dev/null; then
+                rm -rf "$skill_dir"
+                warn "Removed stale skill $name"
+            fi
+        done
+    fi
+
+    for child in "$DOTFILES_DIR/.claude/skills"/* "$DOTFILES_DIR/.pi/skills"/*; do
+        if [ -L "$child" ] && [ ! -e "$child" ]; then
+            rm "$child"
+        fi
+    done
+}
+
 # ── Core Tools ────────────────────────────────────────────────────────────────
 
-info "Checking core tools..."
-try_install stow
+info "Checking core tools for the $PROFILE profile..."
+try_install curl
 try_install git
+try_install stow
+try_install zsh
+try_install jq
+try_install wget
+try_install unzip
 try_install gh
 try_install nvim neovim
-try_install bat
+try_install bat bat batcat
 try_install lsd
 try_install fzf
 try_install zoxide
@@ -111,31 +305,59 @@ try_install carapace
 try_install spf superfile
 try_install git-lfs
 try_install rg ripgrep
-try_install fd
+if [ "$PACKAGE_MANAGER" = "apt" ]; then
+    try_install fd fd-find fdfind
+else
+    try_install fd
+fi
 try_install starship
-try_install jq
-try_install wget
-try_install curl
-try_install unzip
 try_install ffmpeg
 
-if [ "$OS" = "Darwin" ]; then
-    try_install ghostty
+if [ "$PROFILE" = "desktop" ]; then
+    if [ "$OS" = "Darwin" ]; then
+        try_install ghostty
+    elif [ "$OS" = "Linux" ]; then
+        info "Checking Linux Wayland desktop tools..."
+        try_install grim
+        try_install slurp
+        try_install satty
+        try_install solaar
+        try_install wl-copy wl-clipboard
+        try_install notify-send libnotify
+        try_install file
+        if [ "$PACKAGE_MANAGER" = "pacman" ]; then
+            try_aur_install dualsensectl
+        else
+            info "Skipping dualsensectl outside Arch Linux."
+        fi
+    fi
 fi
 
 # ── pokemon-colorscripts ──────────────────────────────────────────────────────
 
-if ! has pokemon-colorscripts; then
-    info "Installing pokemon-colorscripts..."
-    if [ "$OS" = "Darwin" ]; then
-        brew install --no-quarantine phisch/tap/pokemon-colorscripts
-    elif has yay; then
-        yay -S --noconfirm pokemon-colorscripts-git
+if [ "$PROFILE" = "desktop" ]; then
+    if ! has pokemon-colorscripts; then
+        info "Installing pokemon-colorscripts..."
+        if [ "$OS" = "Darwin" ]; then
+            brew install --no-quarantine phisch/tap/pokemon-colorscripts \
+                && ok "pokemon-colorscripts" \
+                || warn "Failed to install pokemon-colorscripts"
+        elif has yay; then
+            yay -S --noconfirm pokemon-colorscripts-git \
+                && ok "pokemon-colorscripts" \
+                || warn "Failed to install pokemon-colorscripts"
+        elif has paru; then
+            paru -S --noconfirm pokemon-colorscripts-git \
+                && ok "pokemon-colorscripts" \
+                || warn "Failed to install pokemon-colorscripts"
+        else
+            warn "Install pokemon-colorscripts manually: https://gitlab.com/phoneybadger/pokemon-colorscripts"
+        fi
     else
-        warn "Install pokemon-colorscripts manually: https://gitlab.com/phoneybadger/pokemon-colorscripts"
+        skip "pokemon-colorscripts"
     fi
 else
-    skip "pokemon-colorscripts"
+    info "Skipping pokemon-colorscripts for the server profile."
 fi
 
 # ── Oh My Zsh ────────────────────────────────────────────────────────────────
@@ -184,6 +406,84 @@ if ! has pnpm; then
     ok "pnpm"
 else
     skip "pnpm"
+fi
+
+# ── FNM / Node.js ─────────────────────────────────────────────────────────────
+
+NODE_VERSION_FILE="$DOTFILES_DIR/.node-version"
+
+install_fnm() {
+    if has fnm; then
+        skip "fnm"
+        return 0
+    fi
+
+    info "Installing fnm..."
+    if [ "$PACKAGE_MANAGER" = "brew" ] && pkg_install fnm; then
+        ok "fnm"
+    elif [ "$PACKAGE_MANAGER" = "pacman" ] && package_available fnm && pkg_install fnm; then
+        ok "fnm"
+    elif curl -fsSL https://fnm.vercel.app/install | bash -s -- --skip-shell; then
+        ok "fnm"
+    else
+        warn "Failed to install fnm"
+        return 0
+    fi
+
+    if [ -x "$HOME/.local/share/fnm/fnm" ]; then
+        export PATH="$HOME/.local/share/fnm:$PATH"
+    fi
+}
+
+check_node_lts_update() {
+    local current_version current_major latest_lts latest_major
+
+    if ! has node || ! has jq || ! has curl; then
+        return 0
+    fi
+
+    current_version="$(node --version 2>/dev/null || true)"
+    current_major="${current_version#v}"
+    current_major="${current_major%%.*}"
+    latest_lts="$(curl -fsSL https://nodejs.org/dist/index.json 2>/dev/null \
+        | jq -r '[.[] | select(.lts != false)][0].version' 2>/dev/null || true)"
+    latest_major="${latest_lts#v}"
+    latest_major="${latest_major%%.*}"
+
+    if [[ "$current_major" =~ ^[0-9]+$ ]] \
+        && [[ "$latest_major" =~ ^[0-9]+$ ]] \
+        && [ "$latest_major" -gt "$current_major" ]; then
+        warn "Node.js LTS $latest_lts is available (current: $current_version). Update $NODE_VERSION_FILE when ready."
+    fi
+}
+
+install_fnm
+if has fnm; then
+    eval "$(fnm env --shell bash)"
+
+    if [ ! -f "$NODE_VERSION_FILE" ]; then
+        info "Installing the latest Node.js LTS..."
+        if fnm install --lts --use; then
+            NODE_VERSION="$(node --version)"
+            printf '%s\n' "$NODE_VERSION" > "$NODE_VERSION_FILE"
+            fnm default "$NODE_VERSION"
+            ok "Node.js $NODE_VERSION (pinned in .node-version)"
+            check_node_lts_update
+        else
+            warn "Failed to install Node.js LTS"
+        fi
+    else
+        NODE_VERSION="$(tr -d '[:space:]' < "$NODE_VERSION_FILE")"
+        if [ -n "$NODE_VERSION" ] && fnm install "$NODE_VERSION" --use; then
+            fnm default "$NODE_VERSION"
+            ok "Node.js $NODE_VERSION"
+            check_node_lts_update
+        else
+            warn "Failed to activate Node.js from $NODE_VERSION_FILE"
+        fi
+    fi
+else
+    warn "fnm unavailable — npm-based tools may need manual installation."
 fi
 
 # ── Claude Code ───────────────────────────────────────────────────────────────
@@ -274,15 +574,10 @@ if has npx; then
             [ -z "$repo" ] && continue
             npx -y skills add "$repo" -y </dev/null && ok "$repo" || warn "Failed to install: $repo"
         done < "$DOTFILES_DIR/.skills"
-
-        mkdir -p "$DOTFILES_DIR/.codex/instructions"
-        if [ -d "$DOTFILES_DIR/.agents/skills/uncodixfy" ]; then
-            ln -sfn ../../.agents/skills/uncodixfy "$DOTFILES_DIR/.codex/instructions/Uncodixfy"
-            ok "Uncodixfy (Codex)"
-        fi
     )
+    prune_skill_artifacts
 else
-    warn "npx not found — skipping skills install."
+    warn "npx not found — skipping skills install and pruning."
 fi
 
 # ── Git Submodules ────────────────────────────────────────────────────────────
@@ -307,11 +602,8 @@ info "Preparing stow targets..."
 backup_target "$HOME/.claude/CLAUDE.md"
 backup_target "$HOME/.claude/settings.json"
 backup_target "$HOME/.pi/agent/settings.json"
-backup_target "$HOME/.codex/config.toml"
-backup_target "$HOME/.codex/rules/default.rules"
 backup_generated_children "$DOTFILES_DIR/.claude/skills" "$HOME/.claude/skills"
 backup_generated_children "$DOTFILES_DIR/.pi/skills" "$HOME/.pi/skills"
-backup_generated_children "$DOTFILES_DIR/.codex/instructions" "$HOME/.codex/instructions"
 ok "stow targets"
 
 # ── Stow dotfiles ────────────────────────────────────────────────────────────
@@ -325,7 +617,6 @@ ok "dotfiles"
 info "Linking generated skills..."
 link_generated_children "$DOTFILES_DIR/.claude/skills" "$HOME/.claude/skills"
 link_generated_children "$DOTFILES_DIR/.pi/skills" "$HOME/.pi/skills"
-link_generated_children "$DOTFILES_DIR/.codex/instructions" "$HOME/.codex/instructions"
 ok "skills"
 
 # ── Done ─────────────────────────────────────────────────────────────────────
@@ -334,5 +625,4 @@ echo ""
 info "All done!"
 echo "  · Fill in ~/.secrets with your credentials"
 echo "  · Run 'pi' and '/login' if you want to use your existing Pi subscription"
-echo "  · Install Claude Code plugins (see README)"
 echo "  · Restart your shell or: source ~/.zshrc"

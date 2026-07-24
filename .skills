@@ -1,7 +1,7 @@
 # ── Agent Skills ──────────────────────────────────────────────────────────────
 # Add skill repos below, one per line (owner/repo format).
-# Run `npx skills install` to install all, or `npx skills add <owner>/<repo>`
-# to add a single one. See https://skills.sh/ to browse available skills.
+# setup.sh syncs all entries; use `npx skills add <owner>/<repo>` to add one.
+# See https://skills.sh/ to browse available skills.
 # ──────────────────────────────────────────────────────────────────────────────
 
 emmsixx/skills
@@ -16,4 +16,4 @@ remotion-dev/skills         # remotion-best-practices
 shadcn/ui                   # shadcn
 sveltejs/ai-tools           # svelte-code-writer, svelte-core-bestpractices
 blader/humanizer            # humanizer
-cyxzdev/Uncodixfy           # uncodixfy
+pbakaus/impeccable         # impeccable

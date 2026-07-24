@@ -4,14 +4,8 @@
 # skills.sh generated artifacts (installed locally, never committed)
 .agents/
 skills/
-skills-lock.json
 .claude/skills/
 .pi/*
 !.pi/agent/
 .pi/agent/*
 !.pi/agent/settings.json
-.codex/*
-!.codex/
-!.codex/config.toml
-!.codex/rules/
-!.codex/rules/default.rules
