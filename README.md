@@ -50,7 +50,7 @@ The setup script handles most dependencies automatically. Install these manually
 
 ## Pi
 
-`setup.sh` installs Pi with `npm install -g @mariozechner/pi-coding-agent`. After installation, run `pi` and use `/login` if you want to authenticate with your existing subscription instead of an API key.
+`setup.sh` installs Pi with `npm install -g @earendil-works/pi-coding-agent`. After installation, run `pi` and use `/login` if you want to authenticate with your existing subscription instead of an API key.
 
 
 ## Skills

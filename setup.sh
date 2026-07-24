@@ -201,9 +201,9 @@ fi
 if ! has pi; then
     info "Installing Pi..."
     if has npm; then
-        npm install -g @mariozechner/pi-coding-agent && ok "pi" || warn "Failed to install pi via npm"
+        npm install -g @earendil-works/pi-coding-agent && ok "pi" || warn "Failed to install pi via npm"
     else
-        warn "Cannot install Pi — install manually: npm install -g @mariozechner/pi-coding-agent"
+        warn "Cannot install Pi — install manually: npm install -g @earendil-works/pi-coding-agent"
     fi
 else
     skip "pi"
