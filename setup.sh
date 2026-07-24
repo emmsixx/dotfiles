@@ -643,6 +643,20 @@ else
     warn "fnm unavailable — npm-based tools may need manual installation."
 fi
 
+# ── Pi Extension Dependencies ────────────────────────────────────────────────
+
+PI_EXTENSIONS_DIR="$DOTFILES_DIR/.pi/agent/extensions"
+if [ -f "$PI_EXTENSIONS_DIR/package-lock.json" ]; then
+    if has npm; then
+        info "Installing Pi extension dependencies..."
+        npm --prefix "$PI_EXTENSIONS_DIR" ci --omit=dev \
+            && ok "Pi extension dependencies" \
+            || warn "Failed to install Pi extension dependencies"
+    else
+        warn "npm unavailable — Pi extensions may need manual dependency installation."
+    fi
+fi
+
 # ── Claude Code ───────────────────────────────────────────────────────────────
 
 if ! has claude; then

@@ -9,6 +9,14 @@ skills/
 !.pi/agent/
 .pi/agent/*
 !.pi/agent/settings.json
+!.pi/agent/extensions/
+!.pi/agent/extensions/**
+.pi/agent/extensions/**/node_modules/
+.pi/agent/extensions/**/bin/
+.pi/agent/extensions/summaries/config.private.json
+.pi/agent/extensions/summaries/config.private.json.*.tmp
+!.pi/agent/skills/
+!.pi/agent/skills/**
 .codex/*
 !.codex/
 !.codex/config.toml
