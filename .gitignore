@@ -26,3 +26,7 @@ skills/
 
 # DMS-generated niri config
 .config/niri/dms/
+
+# gh auth tokens
+.config/gh/
+.config/systemd/

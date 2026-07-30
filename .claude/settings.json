@@ -1,5 +1,6 @@
 {
   "model": "claude-fable-5[1m]",
+  "enableWorkflows": true,
   "statusLine": {
     "type": "command",
     "command": "bunx -y ccstatusline@latest",
@@ -25,5 +26,6 @@
   },
   "effortLevel": "high",
   "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "verbose": true
 }

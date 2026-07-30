@@ -659,25 +659,20 @@ fi
 
 # ── Claude Code ───────────────────────────────────────────────────────────────
 
-if ! has claude; then
-    info "Installing Claude Code..."
-    curl -fsSL https://claude.ai/install.sh | bash
+info "Installing or refreshing Claude Code..."
+if (set -o pipefail; curl -fsSL https://claude.ai/install.sh | bash); then
     ok "claude"
 else
-    skip "claude"
+    warn "Failed to install Claude Code with the official installer"
 fi
 
 # ── Pi ────────────────────────────────────────────────────────────────────────
 
-if ! has pi; then
-    info "Installing Pi..."
-    if has npm; then
-        npm install -g @earendil-works/pi-coding-agent && ok "pi" || warn "Failed to install pi via npm"
-    else
-        warn "Cannot install Pi — install manually: npm install -g @earendil-works/pi-coding-agent"
-    fi
+info "Installing or refreshing Pi..."
+if (set -o pipefail; curl -fsSL https://pi.dev/install.sh | sh); then
+    ok "pi"
 else
-    skip "pi"
+    warn "Failed to install Pi with the official installer"
 fi
 
 # ── Claude Code Plugins ───────────────────────────────────────────────────────
@@ -703,17 +698,11 @@ fi
 
 # ── Codex ─────────────────────────────────────────────────────────────────────
 
-if ! has codex; then
-    info "Installing Codex..."
-    if [ "$OS" = "Darwin" ]; then
-        brew install --cask codex && ok "codex" || warn "Failed to install codex via brew"
-    elif has npm; then
-        npm install -g @openai/codex && ok "codex" || warn "Failed to install codex via npm"
-    else
-        warn "Cannot install Codex — install manually: npm install -g @openai/codex"
-    fi
+info "Installing or refreshing Codex..."
+if (set -o pipefail; curl -fsSL https://chatgpt.com/codex/install.sh | sh); then
+    ok "codex"
 else
-    skip "codex"
+    warn "Failed to install Codex with the official installer"
 fi
 
 # ── Firecrawl ─────────────────────────────────────────────────────────────────

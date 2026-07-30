@@ -171,3 +171,7 @@ fi
 # Disabled to avoid Vite+ overriding your global node/npm versions.
 # Use manually when needed:
 #   . "$HOME/.vite-plus/env"
+
+# >>> Codex installer >>>
+export PATH="/home/ali/.local/bin:$PATH"
+# <<< Codex installer <<<

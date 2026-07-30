@@ -21,6 +21,8 @@ The desktop profile installs the full workstation setup. The server profile inst
 
 This will install the selected dependencies, set up Oh My Zsh and plugins, install Starship, Claude Code and its plugins, Pi, Codex, and Firecrawl, install agent skills into the dotfiles repo, initialize submodules, create `~/.secrets` from the template, and symlink the tracked configs plus generated agent skill links into `$HOME`.
 
+Claude Code, Codex, and Pi are installed or refreshed on every setup run using their official shell installers. The installers run with their upstream defaults and may prompt when an installation already exists.
+
 
 ## Requirements
 
@@ -57,7 +59,7 @@ The setup script handles most dependencies automatically. Install these manually
 
 ## Pi
 
-`setup.sh` installs Pi with `npm install -g @earendil-works/pi-coding-agent`. After installation, run `pi` and use `/login` if you want to authenticate with your existing subscription instead of an API key.
+`setup.sh` installs or refreshes Pi through its official installer. The installer may use npm internally as part of its default behavior. After installation, run `pi` and use `/login` if you want to authenticate with your existing subscription instead of an API key.
 
 
 ## Skills
@@ -77,7 +79,7 @@ To add a new skill repo, append it to `.skills` and rerun:
 
 ## Node.js
 
-Setup installs FNM and uses the exact version in `.node-version` for npm-based tools. It reports when a newer major Node.js LTS release is available; upgrades are intentional rather than automatic.
+Setup installs FNM and uses the exact version in `.node-version` for Pi's installer and other npm-based tools. It reports when a newer major Node.js LTS release is available; upgrades are intentional rather than automatic.
 
 To upgrade deliberately:
 
