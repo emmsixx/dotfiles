@@ -365,8 +365,18 @@ link_generated_children() {
     done
 }
 
+skill_repo_from_line() {
+    local entry="$1" repo
+
+    entry="${entry%%#*}"
+    repo="${entry%%|*}"
+    repo="${repo#"${repo%%[![:space:]]*}"}"
+    repo="${repo%"${repo##*[![:space:]]}"}"
+    printf '%s' "$repo"
+}
+
 prune_skill_lock() {
-    local sources_json
+    local sources_json selected_json full_sources_json repo entry selections skill
 
     if [ ! -f "$DOTFILES_DIR/skills-lock.json" ] || ! has jq; then
         return 0
@@ -374,16 +384,50 @@ prune_skill_lock() {
 
     sources_json="$(
         while IFS= read -r line; do
-            repo="${line%%#*}"
-            repo="${repo#"${repo%%[![:space:]]*}"}"
-            repo="${repo%"${repo##*[![:space:]]}"}"
+            repo="$(skill_repo_from_line "$line")"
+            [ -n "$repo" ] && printf '%s\n' "$repo"
+        done < "$DOTFILES_DIR/.skills" \
+            | jq -R -s 'split("\n") | map(select(length > 0))'
+    )"
+
+    selected_json="$(
+        while IFS= read -r line; do
+            entry="${line%%#*}"
+            entry="${entry#"${entry%%[![:space:]]*}"}"
+            entry="${entry%"${entry##*[![:space:]]}"}"
+            [[ "$entry" == *"|"* ]] || continue
+            selections="${entry#*|}"
+            IFS=',' read -r -a selected_skills <<< "$selections"
+            for skill in "${selected_skills[@]}"; do
+                skill="${skill#"${skill%%[![:space:]]*}"}"
+                skill="${skill%"${skill##*[![:space:]]}"}"
+                [ -n "$skill" ] && printf '%s\n' "$skill"
+            done
+        done < "$DOTFILES_DIR/.skills" \
+            | jq -R -s 'split("\n") | map(select(length > 0))'
+    )"
+
+    full_sources_json="$(
+        while IFS= read -r line; do
+            entry="${line%%#*}"
+            entry="${entry#"${entry%%[![:space:]]*}"}"
+            entry="${entry%"${entry##*[![:space:]]}"}"
+            [[ -n "$entry" && "$entry" != *"|"* ]] || continue
+            repo="$(skill_repo_from_line "$entry")"
             [ -n "$repo" ] && printf '%s\n' "$repo"
         done < "$DOTFILES_DIR/.skills" \
             | jq -R -s 'split("\n") | map(select(length > 0))'
     )"
 
     jq --argjson sources "$sources_json" \
-        '.skills |= with_entries(select(.value.source as $source | $sources | index($source)))' \
+        --argjson selected "$selected_json" \
+        --argjson full_sources "$full_sources_json" \
+        '.skills |= with_entries(select(
+            .key as $name |
+            .value.source as $source |
+            (($sources | index($source)) != null) and
+            ((($full_sources | index($source)) != null) or (($selected | index($name)) != null))
+        ))' \
         "$DOTFILES_DIR/skills-lock.json" > "$DOTFILES_DIR/skills-lock.json.tmp"
     mv "$DOTFILES_DIR/skills-lock.json.tmp" "$DOTFILES_DIR/skills-lock.json"
 }
@@ -720,6 +764,7 @@ fi
 
 # ── Agent Skills ──────────────────────────────────────────────────────────────
 # Skills are declared in .skills — edit that file to add or remove skill repos.
+# Append |skill1,skill2 to install only selected skills from a repo bundle.
 # Generated skill artifacts stay local to the dotfiles repo and are gitignored.
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -728,11 +773,25 @@ if has npx; then
     (
         cd "$DOTFILES_DIR"
         while IFS= read -r line; do
-            repo="${line%%#*}"
-            repo="${repo#"${repo%%[![:space:]]*}"}"
-            repo="${repo%"${repo##*[![:space:]]}"}"
-            [ -z "$repo" ] && continue
-            npx -y skills add "$repo" -y </dev/null && ok "$repo" || warn "Failed to install: $repo"
+            entry="${line%%#*}"
+            entry="${entry#"${entry%%[![:space:]]*}"}"
+            entry="${entry%"${entry##*[![:space:]]}"}"
+            [ -z "$entry" ] && continue
+
+            repo="$(skill_repo_from_line "$entry")"
+            if [[ "$entry" == *"|"* ]]; then
+                selections="${entry#*|}"
+                IFS=',' read -r -a selected_skills <<< "$selections"
+                for skill in "${selected_skills[@]}"; do
+                    skill="${skill#"${skill%%[![:space:]]*}"}"
+                    skill="${skill%"${skill##*[![:space:]]}"}"
+                    [ -z "$skill" ] && continue
+                    npx -y skills add "$repo" --skill "$skill" -y </dev/null \
+                        && ok "$repo@$skill" || warn "Failed to install: $repo@$skill"
+                done
+            else
+                npx -y skills add "$repo" -y </dev/null && ok "$repo" || warn "Failed to install: $repo"
+            fi
         done < "$DOTFILES_DIR/.skills"
     )
 else

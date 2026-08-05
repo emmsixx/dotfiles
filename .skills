@@ -1,17 +1,15 @@
 # ── Agent Skills ──────────────────────────────────────────────────────────────
 # Add skill repos below, one per line (owner/repo format).
+# Use owner/repo|skill1,skill2 to install only selected skills from a bundle.
 # setup.sh syncs all entries; use `npx skills add <owner>/<repo>` to add one.
 # See https://skills.sh/ to browse available skills.
 # ──────────────────────────────────────────────────────────────────────────────
 
 emmsixx/skills
-anthropics/skills           # frontend-design
+anthropics/skills|docx,pdf,pptx,xlsx,web-artifacts-builder,webapp-testing # selected common skills
 vercel-labs/skills          # find-skills
 vercel-labs/agent-skills    # vercel-react-best-practices, web-design-guidelines, vercel-react-native-skills
 vercel-labs/agent-browser   # agent-browser
 firecrawl/cli               # live Firecrawl CLI skills
-remotion-dev/skills         # remotion-best-practices
-shadcn/ui                   # shadcn
-sveltejs/ai-tools           # svelte-code-writer, svelte-core-bestpractices
 blader/humanizer            # humanizer
 pbakaus/impeccable         # impeccable

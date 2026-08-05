@@ -69,6 +69,7 @@ Skills are declared in `.skills` and installed automatically by `setup.sh` via [
 - Skill contents are installed locally into `.agents/skills` and are not committed.
 - Generated Claude/Pi skill links are also ignored and linked into `$HOME` by setup.
 - `skills-lock.json` is tracked with installed skill source and hash metadata; setup uses it to prune stale generated skills.
+- Use `owner/repo|skill1,skill2` in `.skills` to install only selected skills from a bundled repository.
 
 To add a new skill repo, append it to `.skills` and rerun:
 

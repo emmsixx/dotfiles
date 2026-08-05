@@ -175,3 +175,6 @@ fi
 # >>> Codex installer >>>
 export PATH="/home/ali/.local/bin:$PATH"
 # <<< Codex installer <<<
+
+# Pi
+export PATH="/home/six/.local/share/fnm/node-versions/v24.18.0/installation/bin:$PATH"

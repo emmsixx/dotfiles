@@ -14,8 +14,7 @@ include "./window-rules.kdl"
 include "./binds.kdl"
 
 // Existing separate file
-include "./noctalia.kdl"
-
-include "dms/windowrules.kdl"
-
-include "dms/cursor.kdl"
+//
+// include "dms/windowrules.kdl"
+//
+// include "dms/cursor.kdl"
