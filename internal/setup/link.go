@@ -19,6 +19,9 @@ func Link(repo, home string, run func(name string, args ...string) error) error 
 	if err := unfoldConfig(repo, home); err != nil {
 		return err
 	}
+	if err := removeAbsoluteManagedLinks(repo, home); err != nil {
+		return err
+	}
 	restore, err := backUpStowConflicts(repo, home)
 	if err != nil {
 		return err
@@ -32,6 +35,51 @@ func Link(repo, home string, run func(name string, args ...string) error) error 
 	}
 	ui.OK("linked tracked dotfiles without folding ~/.config")
 	return nil
+}
+
+// removeAbsoluteManagedLinks removes only links that point directly at the
+// current checkout's managed path. Stow deliberately refuses those absolute
+// links because they are not portable; removing them lets --restow recreate a
+// normal relative link. Unrelated links are left untouched.
+func removeAbsoluteManagedLinks(repo, home string) error {
+	return filepath.WalkDir(repo, func(source string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relative, err := filepath.Rel(repo, source)
+		if err != nil {
+			return err
+		}
+		if relative == "." || skipStowPath(relative) {
+			if entry.IsDir() && relative != "." {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		target := filepath.Join(home, relative)
+		info, err := os.Lstat(target)
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if info.Mode()&fs.ModeSymlink == 0 {
+			return nil
+		}
+		link, err := os.Readlink(target)
+		if err != nil {
+			return err
+		}
+		if !filepath.IsAbs(link) || filepath.Clean(link) != filepath.Clean(source) {
+			return nil
+		}
+		if err := os.Remove(target); err != nil {
+			return fmt.Errorf("remove absolute managed link %s: %w", target, err)
+		}
+		ui.Warn("replaced non-portable absolute link " + target)
+		return nil
+	})
 }
 
 type movedTarget struct {

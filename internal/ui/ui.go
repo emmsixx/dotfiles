@@ -25,6 +25,7 @@ func Interactive() bool {
 }
 
 func Heading(text string) { fmt.Fprintln(os.Stderr, titleStyle.Render(text)) }
+func Info(text string)    { fmt.Fprintln(os.Stderr, text) }
 func OK(text string)      { fmt.Fprintln(os.Stderr, okStyle.Render("✓ "+text)) }
 func Warn(text string)    { fmt.Fprintln(os.Stderr, warnStyle.Render("! "+text)) }
 

@@ -73,6 +73,35 @@ func TestBackUpStowConflictsMovesOnlyManagedFiles(t *testing.T) {
 	}
 }
 
+func TestRemoveAbsoluteManagedLinksRemovesOnlyCurrentCheckoutLinks(t *testing.T) {
+	home := t.TempDir()
+	repo := t.TempDir()
+	source := filepath.Join(repo, ".config", "paneru")
+	if err := os.MkdirAll(source, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(home, ".config", "paneru")
+	if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(source, target); err != nil {
+		t.Fatal(err)
+	}
+	unrelated := filepath.Join(home, ".config", "unrelated")
+	if err := os.Symlink("/tmp/elsewhere", unrelated); err != nil {
+		t.Fatal(err)
+	}
+	if err := removeAbsoluteManagedLinks(repo, home); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(target); !os.IsNotExist(err) {
+		t.Fatalf("managed absolute link should be removed, err = %v", err)
+	}
+	if info, err := os.Lstat(unrelated); err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("unrelated link should be preserved: %v", err)
+	}
+}
+
 func TestLinkGeneratedSkillsPreservesUnrelatedTargets(t *testing.T) {
 	home := t.TempDir()
 	repo := t.TempDir()

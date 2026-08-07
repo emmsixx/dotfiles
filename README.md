@@ -107,7 +107,9 @@ manually when relevant:
 
 ## Pi
 
-The Agent CLIs group installs or refreshes Pi through its official installer.
+The Agent CLIs group installs Pi from npm through the Node version managed by
+FNM. It deliberately does not run Pi's shell installer, so setup never adds a
+version-specific Pi path to `.zshrc`.
 After installation, run `pi` and use `/login` if you want to authenticate with
 your existing subscription instead of an API key.
 

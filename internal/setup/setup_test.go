@@ -49,3 +49,12 @@ func TestFNMEnvironmentUsesSupportedShell(t *testing.T) {
 		t.Fatalf("fnmEnvironment() = %q, want Zsh", environment)
 	}
 }
+
+func TestQuietCommandPreservesFailuresWithoutSuccessOutput(t *testing.T) {
+	command := quietCommand("npx -y skills add owner/repo -y")
+	for _, want := range []string{"mktemp", ">\"$log\" 2>&1", "cat \"$log\" >&2", "exit 1"} {
+		if !strings.Contains(command, want) {
+			t.Fatalf("quietCommand() = %q, want %q", command, want)
+		}
+	}
+}

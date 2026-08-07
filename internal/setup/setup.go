@@ -242,14 +242,27 @@ func (r Runner) installRuntimes(o Options) error {
 }
 
 func (r Runner) installAgents(o Options) error {
-	for _, command := range []string{
-		"curl -fsSL https://claude.ai/install.sh | bash",
-		"curl -fsSL https://pi.dev/install.sh | sh",
-		"curl -fsSL https://chatgpt.com/codex/install.sh | sh",
-	} {
-		if err := r.shell(command); err != nil {
+	if _, err := exec.LookPath("claude"); err != nil {
+		if err := r.shell("curl -fsSL https://claude.ai/install.sh | bash"); err != nil {
 			return err
 		}
+	} else {
+		ui.OK("Claude Code already installed")
+	}
+	// Pi's upstream installer may append an FNM-version-specific PATH entry to
+	// .zshrc. Installing the published package through our selected FNM Node
+	// keeps the shell configuration owned by this repository instead.
+	if err := r.nodeShell("command -v pi >/dev/null 2>&1 || npm install -g --ignore-scripts --no-fund --no-audit @earendil-works/pi-coding-agent"); err != nil {
+		ui.Warn("could not install Pi; run the Runtimes component first")
+	} else {
+		ui.OK("Pi is ready")
+	}
+	if _, err := exec.LookPath("codex"); err != nil {
+		if err := r.shell("curl -fsSL https://chatgpt.com/codex/install.sh | sh"); err != nil {
+			return err
+		}
+	} else {
+		ui.OK("Codex already installed")
 	}
 	if err := r.nodeShell("npm install -g firecrawl-cli"); err != nil {
 		ui.Warn("could not install Firecrawl; run the Runtimes component first")
@@ -418,6 +431,8 @@ func (r Runner) installSkills(o Options) error {
 	if err != nil {
 		return err
 	}
+	ui.Heading("Installing agent skills")
+	installed := 0
 	for _, rawLine := range strings.Split(string(contents), "\n") {
 		entry := strings.TrimSpace(strings.SplitN(rawLine, "#", 2)[0])
 		if entry == "" {
@@ -429,8 +444,10 @@ func (r Runner) installSkills(o Options) error {
 			continue
 		}
 		if len(parts) == 1 {
-			if err := r.nodeShell("cd " + shellPath(o.Repo) + " && npx -y skills add " + shellPath(repo) + " -y </dev/null"); err != nil {
+			if err := r.runSkillInstall(o.Repo, repo, ""); err != nil {
 				ui.Warn("could not install skill source " + repo)
+			} else {
+				installed++
 			}
 			continue
 		}
@@ -439,13 +456,31 @@ func (r Runner) installSkills(o Options) error {
 			if skill == "" {
 				continue
 			}
-			command := "cd " + shellPath(o.Repo) + " && npx -y skills add " + shellPath(repo) + " --skill " + shellPath(skill) + " -y </dev/null"
-			if err := r.nodeShell(command); err != nil {
+			if err := r.runSkillInstall(o.Repo, repo, skill); err != nil {
 				ui.Warn("could not install skill " + repo + "@" + skill)
+			} else {
+				installed++
 			}
 		}
 	}
+	ui.OK(fmt.Sprintf("%d agent skill installs complete", installed))
 	return nil
+}
+
+// runSkillInstall keeps successful skills.sh output out of setup's terminal.
+// On failure it prints the captured diagnostic, then returns an error so the
+// caller can say exactly which source needs attention.
+func (r Runner) runSkillInstall(repoDir, source, skill string) error {
+	command := "cd " + shellPath(repoDir) + " && npx -y skills add " + shellPath(source)
+	if skill != "" {
+		command += " --skill " + shellPath(skill)
+	}
+	command += " -y </dev/null"
+	return r.nodeShell(quietCommand(command))
+}
+
+func quietCommand(command string) string {
+	return "log=$(mktemp); trap 'rm -f \"$log\"' EXIT; if ! (" + command + ") >\"$log\" 2>&1; then cat \"$log\" >&2; exit 1; fi"
 }
 
 func shellPath(value string) string {
