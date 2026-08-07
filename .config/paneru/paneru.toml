@@ -1,0 +1,188 @@
+# Paneru configuration mirroring ~/.config/niri.
+# Caps Lock is mapped by Karabiner to Cmd+Ctrl+Option ("Meh").
+# Adding Shift produces Hyper.
+
+[options]
+focus_follows_mouse = true
+mouse_follows_focus = false
+preset_column_widths = [0.33333, 0.5, 0.66667, 1.0]
+animation_speed = 20.0
+auto_center = false
+window_hidden_ratio = 0.0
+window_resize_cycle = true
+reap_empty_workspaces = true
+virtual_workspace_animations = true
+insert_windows_mid_strip = true
+
+# A 2 px outer inset plus 2 px of per-window padding produces the same
+# 4 px visible outer and inner gaps as the Niri layout.
+[padding]
+top = 2
+bottom = 2
+left = 2
+right = 2
+
+[swipe]
+sensitivity = 0.35
+deceleration = 4.0
+continuous = false
+
+[swipe.gesture]
+fingers_count = 4
+direction = "Natural"
+vertical = true
+
+[swipe.scroll]
+modifier = "cmd + alt + ctrl"
+vertical_modifier = "shift"
+
+[decorations]
+workspace_menu_status = true
+workspace_popup_status = true
+
+[decorations.active.border]
+enabled = true
+color = "#ffb2ba"
+opacity = 1.0
+width = 1.0
+radius = 8.0
+
+[decorations.inactive.border]
+enabled = true
+color = "#919191"
+opacity = 1.0
+width = 1.0
+radius = 8.0
+
+[bindings]
+# Caps/Meh + HJKL or arrows: focus windows.
+# Hyper + H/L is also focus, matching the custom Niri Vim navigation block.
+window_focus_west = [
+    "cmd + alt + ctrl - h",
+    "cmd + alt + ctrl - leftarrow",
+    "cmd + alt + ctrl + shift - h",
+]
+window_focus_south = [
+    "cmd + alt + ctrl - j",
+    "cmd + alt + ctrl - downarrow",
+]
+window_focus_north = [
+    "cmd + alt + ctrl - k",
+    "cmd + alt + ctrl - uparrow",
+]
+window_focus_east = [
+    "cmd + alt + ctrl - l",
+    "cmd + alt + ctrl - rightarrow",
+    "cmd + alt + ctrl + shift - l",
+]
+
+# Hyper + arrows: move horizontally or between vertical workspaces.
+window_swap_west = "cmd + alt + ctrl + shift - leftarrow"
+window_swap_east = "cmd + alt + ctrl + shift - rightarrow"
+window_swap_north = "alt + shift - k"
+window_swap_south = "alt + shift - j"
+window_focus_first = "cmd + alt + ctrl - home"
+window_focus_last = "cmd + alt + ctrl - end"
+window_swap_first = "cmd + alt + ctrl + shift - home"
+window_swap_last = "cmd + alt + ctrl + shift - end"
+
+# Niri-like vertical workspaces: Hyper+J/K, Caps+U/I, and Page Up/Down.
+window_virtual_north = [
+    "cmd + alt + ctrl + shift - k",
+    "cmd + alt + ctrl - i",
+    "cmd + alt + ctrl - pageup",
+]
+window_virtual_south = [
+    "cmd + alt + ctrl + shift - j",
+    "cmd + alt + ctrl - u",
+    "cmd + alt + ctrl - pagedown",
+]
+window_virtualmove_north = [
+    "cmd + alt + ctrl + shift - uparrow",
+    "cmd + alt + ctrl + shift - i",
+    "cmd + alt + ctrl + shift - pageup",
+]
+window_virtualmove_south = [
+    "cmd + alt + ctrl + shift - downarrow",
+    "cmd + alt + ctrl + shift - u",
+    "cmd + alt + ctrl + shift - pagedown",
+]
+
+# Caps/Meh + number switches workspace; adding Shift moves the window and follows.
+window_virtualnum_1 = "cmd + alt + ctrl - 1"
+window_virtualnum_2 = "cmd + alt + ctrl - 2"
+window_virtualnum_3 = "cmd + alt + ctrl - 3"
+window_virtualnum_4 = "cmd + alt + ctrl - 4"
+window_virtualnum_5 = "cmd + alt + ctrl - 5"
+window_virtualnum_6 = "cmd + alt + ctrl - 6"
+window_virtualnum_7 = "cmd + alt + ctrl - 7"
+window_virtualnum_8 = "cmd + alt + ctrl - 8"
+window_virtualnum_9 = "cmd + alt + ctrl - 9"
+window_virtualmovenum_1 = "cmd + alt + ctrl + shift - 1"
+window_virtualmovenum_2 = "cmd + alt + ctrl + shift - 2"
+window_virtualmovenum_3 = "cmd + alt + ctrl + shift - 3"
+window_virtualmovenum_4 = "cmd + alt + ctrl + shift - 4"
+window_virtualmovenum_5 = "cmd + alt + ctrl + shift - 5"
+window_virtualmovenum_6 = "cmd + alt + ctrl + shift - 6"
+window_virtualmovenum_7 = "cmd + alt + ctrl + shift - 7"
+window_virtualmovenum_8 = "cmd + alt + ctrl + shift - 8"
+window_virtualmovenum_9 = "cmd + alt + ctrl + shift - 9"
+
+# Niri layout equivalents.
+window_resize = [
+    "cmd + alt + ctrl - r",
+    "cmd + alt + ctrl + shift - r",
+]
+window_fullwidth = "cmd + alt + ctrl - f"
+window_center = "cmd + alt + ctrl - c"
+window_manage = "cmd + alt + ctrl - space"
+window_stack = "cmd + alt + ctrl - comma"
+window_unstack = "cmd + alt + ctrl - period"
+
+# Default Niri width, gaps, and rounded corners for tiled windows.
+[windows.default]
+title = ".*"
+width = 0.5
+horizontal_padding = 2
+vertical_padding = 2
+border_radius = 8.0
+
+# Niri-style floating utility and dialog rules.
+[windows.picture_in_picture]
+title = "^Picture-in-Picture$"
+floating = true
+grid = "4:4:3:0:1:1"
+
+[windows.file_dialogs]
+title = "^(Open|Open Files|Save|Save As|Confirm to replace files|File Operation Progress).*$"
+floating = true
+
+[windows.system_settings]
+title = ".*"
+bundle_id = "com.apple.systempreferences"
+floating = true
+
+[windows.app_store]
+title = ".*"
+bundle_id = "com.apple.AppStore"
+floating = true
+
+[windows.proton_vpn]
+title = ".*"
+bundle_id = "ch.protonvpn.mac"
+floating = true
+
+[windows.app_cleaner]
+title = ".*"
+bundle_id = "net.freemacsoft.AppCleaner"
+floating = true
+
+[windows.daisy_disk]
+title = ".*"
+bundle_id = "com.daisydiskapp.DaisyDiskStandAlone"
+floating = true
+
+[restore]
+enabled = true
+startup_grace_ms = 2000
+missing_windows = "ignore"
