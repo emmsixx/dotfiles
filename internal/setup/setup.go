@@ -350,15 +350,7 @@ func (r Runner) installPackages(packages []string) error {
 	if len(available) == 0 {
 		return nil
 	}
-	args := available
-	switch manager {
-	case "brew":
-		args = append([]string{"install"}, packages...)
-	case "apt-get":
-		args = append([]string{"install", "-y"}, packages...)
-	case "pacman":
-		args = append([]string{"-S", "--needed", "--noconfirm"}, packages...)
-	}
+	args := packageInstallArgs(manager, available)
 	if (manager == "apt-get" || manager == "pacman") && os.Geteuid() != 0 {
 		return r.Run("sudo", append([]string{manager}, args...)...)
 	}
@@ -432,6 +424,20 @@ func packageAvailable(manager, packageName string) bool {
 		return false
 	}
 	return command.Run() == nil
+}
+
+func packageInstallArgs(manager string, available []string) []string {
+	args := append([]string(nil), available...)
+	switch manager {
+	case "brew":
+		return append([]string{"install"}, args...)
+	case "apt-get":
+		return append([]string{"install", "-y"}, args...)
+	case "pacman":
+		return append([]string{"-S", "--needed", "--noconfirm"}, args...)
+	default:
+		return args
+	}
 }
 
 func contains(items []string, target string) bool {
