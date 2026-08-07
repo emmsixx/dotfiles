@@ -33,3 +33,11 @@ func TestPackageInstallArgsUseOnlyAvailablePackages(t *testing.T) {
 		t.Fatalf("packageInstallArgs() = %#v, want %#v", got, want)
 	}
 }
+
+func TestReplacePackageUsesPlatformSpecificName(t *testing.T) {
+	got := replacePackage([]string{"git", "fd", "ripgrep"}, "fd", "fd-find")
+	want := []string{"git", "fd-find", "ripgrep"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("replacePackage() = %#v, want %#v", got, want)
+	}
+}

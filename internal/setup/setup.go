@@ -182,7 +182,17 @@ func (r Runner) Apply(o Options) error {
 }
 
 func (r Runner) installCore(o Options) error {
-	return r.installPackages([]string{"curl", "git", "stow", "zsh", "jq", "wget", "unzip", "gh", "neovim", "bat", "lsd", "fzf", "zoxide", "sesh", "lazygit", "btop", "git-delta", "fastfetch", "yazi", "carapace", "superfile", "git-lfs", "ripgrep", "fd-find", "starship", "ffmpeg"})
+	packages := []string{"curl", "git", "stow", "zsh", "jq", "wget", "unzip", "gh", "neovim", "bat", "lsd", "fzf", "zoxide", "sesh", "lazygit", "btop", "git-delta", "fastfetch", "yazi", "carapace", "superfile", "git-lfs", "ripgrep", "fd", "starship", "ffmpeg"}
+	if packageManager() == "apt-get" {
+		packages = replacePackage(packages, "fd", "fd-find")
+	}
+	if err := r.installPackages(packages); err != nil {
+		return err
+	}
+	if packageManager() == "apt-get" {
+		return ensureCommandAlias("fd", "fdfind")
+	}
+	return nil
 }
 
 func (r Runner) installShell(o Options) error {
@@ -438,6 +448,41 @@ func packageInstallArgs(manager string, available []string) []string {
 	default:
 		return args
 	}
+}
+
+func replacePackage(packages []string, old, replacement string) []string {
+	result := append([]string(nil), packages...)
+	for index, packageName := range result {
+		if packageName == old {
+			result[index] = replacement
+		}
+	}
+	return result
+}
+
+func ensureCommandAlias(expected, actual string) error {
+	if _, err := exec.LookPath(expected); err == nil {
+		return nil
+	}
+	path, err := exec.LookPath(actual)
+	if err != nil {
+		return nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	bin := filepath.Join(home, ".local", "bin")
+	if err := os.MkdirAll(bin, 0o755); err != nil {
+		return err
+	}
+	link := filepath.Join(bin, expected)
+	if _, err := os.Lstat(link); err == nil {
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return os.Symlink(path, link)
 }
 
 func contains(items []string, target string) bool {
