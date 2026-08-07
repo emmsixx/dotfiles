@@ -30,3 +30,8 @@ skills/
 # gh auth tokens
 .config/gh/
 .config/systemd/
+
+# Runtime state from applications. ~/.config is kept as a real directory by
+# the Go installer, so these must never be folded into the dotfiles checkout.
+.config/astro/
+.config/firecrawl-cli/

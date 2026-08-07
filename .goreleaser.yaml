@@ -1,0 +1,21 @@
+version: 2
+
+project_name: dotfiles
+
+builds:
+  - id: dotfiles
+    main: ./cmd/dotfiles
+    binary: dotfiles
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - id: dotfiles
+    ids: [dotfiles]
+    formats: [tar.gz]
+    name_template: 'dotfiles_{{ .Os }}_{{ .Arch }}'
+
+checksum:
+  name_template: checksums.txt

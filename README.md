@@ -1,7 +1,8 @@
 # Dotfiles
 
-Personal dotfiles for macOS and Linux, including cross-platform shell config and Linux-specific application themes and settings.
-
+An interactive development-environment setup tool for this dotfiles repository.
+It uses Stow for configuration management; it does not try to replace a general
+purpose dotfiles manager such as chezmoi.
 
 ## Setup
 
@@ -11,33 +12,74 @@ cd ~/dotfiles
 ./setup.sh
 ```
 
-For a headless Debian server or homelab VM, use the server profile instead:
+The tiny shell bootstrapper downloads a verified release of the `dotfiles` Go
+binary, then launches an interactive Charm/Huh wizard. Choose a desktop or
+server profile and the groups you want: essentials, shell, runtimes, agent
+CLIs, agent customization, desktop tools, the optional T3 Code desktop app,
+linking, and secrets/authentication. The desktop-app installer only acts on
+officially supported paths: Homebrew Cask on macOS and `yay`/`paru` on Arch.
+
+For the prior "install the normal profile" behavior, use:
 
 ```sh
-./setup-server.sh
+./setup.sh --defaults
 ```
 
-The desktop profile installs the full workstation setup. The server profile installs the shared CLI and agent tooling while skipping desktop-specific packages such as Ghostty, tmux (including shell auto-attach), Pokémon-colorscripts, and Linux Wayland utilities.
+For a headless server:
 
-This will install the selected dependencies, set up Oh My Zsh and plugins, install Starship, Claude Code and its plugins, Pi, Codex, and Firecrawl, install agent skills into the dotfiles repo, initialize submodules, create `~/.secrets` from the template, and symlink the tracked configs plus generated agent skill links into `$HOME`.
+```sh
+./setup.sh --profile server --defaults
+```
 
-Claude Code, Codex, and Pi are installed or refreshed on every setup run using their official shell installers. The installers run with their upstream defaults and may prompt when an installation already exists.
+`setup-server.sh` remains as a compatibility shortcut for the latter command.
+Use `--components core,shell,config --non-interactive` for automation. The only
+service offered by setup is the opt-in Linux server T3 Code background service:
 
+```sh
+./setup.sh --profile server --defaults --t3-service nightly
+# or: --t3-service latest
+```
+
+Nightly is its default channel. This service is intentionally not selected by
+default and is usually unnecessary on a desktop.
+
+## CLI
+
+```text
+dotfiles setup [--defaults] [--components ...]
+dotfiles secrets status|edit
+dotfiles auth status|login
+dotfiles auth codex list|add NAME|login [NAME]|sync
+dotfiles codex [--account NAME] -- [codex arguments]
+dotfiles doctor
+```
+
+The initial auth wizard offers Codex, Claude Code, GitHub CLI, Firecrawl, and
+Pi. Secrets remain in `~/.secrets` with mode `0600`; existing comments and
+unrelated exports are preserved.
+
+Codex accounts use T3 Code-compatible homes: `~/.codex` for main and
+`~/.codex-NAME` for named accounts. Named homes share non-auth Codex state but
+keep `auth.json` private. `cx` opens an account picker, and authenticated named
+accounts get `codex-NAME` launchers in `~/.local/bin`. Claude multi-account is
+deliberately deferred because its credential-store isolation is not yet reliable
+across platforms.
 
 ## Requirements
 
-The setup script handles most dependencies automatically. Install these manually:
+Released binaries work on Linux and macOS without a local Go toolchain. The
+bootstrapper handles most dependencies selected in the wizard. Install these
+manually when relevant:
 
 - [GoogleSansCode Nerd Font](https://github.com/E-Vertin/GoogleSansCode-NerdFont)
-- Clipboard tool (`pbcopy` is built in on macOS; setup attempts `wl-clipboard` on Linux Wayland and falls back to a manual install if unavailable)
-
+- Clipboard tool (`pbcopy` is built in on macOS; select Desktop tools to attempt
+  `wl-clipboard` on Linux Wayland)
 
 ## Code Style
 
-- Shell scripts should be POSIX-compliant where possible
-- Use 4-space indentation for shell scripts
-- Avoid inline comments unless necessary
-
+- Go code is formatted with `gofmt`.
+- Shell bootstrap scripts are POSIX `sh`.
+- Use four spaces in shell scripts and avoid unnecessary inline comments.
 
 ## Key Aliases
 
@@ -48,64 +90,59 @@ The setup script handles most dependencies automatically. Install these manually
 | `ls` | lsd |
 | `cc` | claude |
 | `ccsp` | claude --dangerously-skip-permissions |
-| `cx` | codex |
+| `cx` | Codex account picker |
 | `yeet` | git add, commit, push (interactive) |
 | `y` | yazi |
 
-
 ## Claude Code
 
-`CLAUDE.md` references `GH_WORK_USER` and `GH_PERSONAL_USER` from `~/.secrets`. The setup script copies `.secrets.example` to `~/.secrets` automatically — fill in your values before starting a new shell.
+`CLAUDE.md` references `GH_WORK_USER` and `GH_PERSONAL_USER` from
+`~/.secrets`. Run `dotfiles secrets edit` to fill in values.
 
 ## Pi
 
-`setup.sh` installs or refreshes Pi through its official installer. The installer may use npm internally as part of its default behavior. After installation, run `pi` and use `/login` if you want to authenticate with your existing subscription instead of an API key.
-
+The Agent CLIs group installs or refreshes Pi through its official installer.
+After installation, run `pi` and use `/login` if you want to authenticate with
+your existing subscription instead of an API key.
 
 ## Skills
 
-Skills are declared in `.skills` and installed automatically by `setup.sh` via [skills.sh](https://skills.sh/).
+Skills are declared in `.skills` and are installed by the Agent CLIs group via
+[skills.sh](https://skills.sh/).
 
 - Skill contents are installed locally into `.agents/skills` and are not committed.
-- Generated Claude/Pi skill links are also ignored and linked into `$HOME` by setup.
-- `skills-lock.json` is tracked with installed skill source and hash metadata; setup uses it to prune stale generated skills.
-- Use `owner/repo|skill1,skill2` in `.skills` to install only selected skills from a bundled repository.
+- Generated Claude/Pi skill links are ignored and linked into `$HOME` by setup.
+- `skills-lock.json` is tracked with installed skill source and hash metadata.
+- Use `owner/repo|skill1,skill2` in `.skills` to install only selected skills.
 
-To add a new skill repo, append it to `.skills` and rerun:
+To add a skill repo, append it to `.skills` and rerun:
 
 ```sh
-./setup.sh
+dotfiles setup --components agents
 ```
-
 
 ## Node.js
 
-Setup installs FNM and uses the exact version in `.node-version` for Pi's installer and other npm-based tools. It reports when a newer major Node.js LTS release is available; upgrades are intentional rather than automatic.
-
-To upgrade deliberately:
+The Runtimes group installs FNM and uses the exact version in `.node-version`
+for Pi's installer and other npm-based tools. Upgrades are intentional rather
+than automatic.
 
 ```sh
 fnm install --lts --use
 node --version > .node-version
-./setup.sh
+dotfiles setup --components runtimes
 ```
-
-## Future Plans / Ideas
-
-- Switch to `varlock` / `infiscal` for environment variable and secret handling
-- Add an interactive CLI for setup and maintenance tasks
-- Potentially prompt for environment variables during setup, though this may be more annoying than helpful
 
 ## Structure
 
-```
+```text
 dotfiles/
-├── .claude/       # Claude Code configuration (CLAUDE.md, settings.json)
-├── .config/       # Application configurations
-├── .pi/           # Pi configuration
-├── .node-version  # Pinned Node.js version for FNM
-├── .scripts/      # Utility shell scripts
-├── .zshrc         # Zsh configuration
-├── .gitconfig     # Git configuration
-└── .gitignore
+├── cmd/dotfiles/   # Go CLI entry point
+├── internal/       # setup, secrets, Codex-home, and UI logic
+├── .claude/        # Claude Code configuration
+├── .config/        # Application configurations
+├── .pi/            # Pi configuration
+├── .scripts/       # Utility shell scripts
+├── .goreleaser.yaml
+└── setup.sh         # release-binary bootstrapper
 ```

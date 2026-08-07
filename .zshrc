@@ -73,7 +73,13 @@ elif command -v batcat >/dev/null 2>&1; then
 fi
 command -v claude >/dev/null 2>&1 && alias cc=claude
 command -v claude >/dev/null 2>&1 && alias ccsp="claude --dangerously-skip-permissions"
-command -v codex >/dev/null 2>&1 && alias cx=codex
+function cx() {
+    if command -v dotfiles >/dev/null 2>&1; then
+        dotfiles codex -- "$@"
+    else
+        codex "$@"
+    fi
+}
 function yeet() {
 	if [ -z "$1" ]; then
 		echo "Usage: yeet \"commit message\""
