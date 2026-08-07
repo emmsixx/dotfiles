@@ -1,5 +1,10 @@
 custom-shader = shaders/cursor_smear.glsl
 
+# Always start new windows at $HOME instead of inheriting the previous
+# window's cwd (which can drift to `/` if Ghostty's first process ever
+# launched with that as its working directory, e.g. via Dock/Spotlight).
+working-directory = home
+
 # Colors
 foreground = #dddddd
 background = #0c0d0f
