@@ -13,8 +13,5 @@ include "./startup.kdl"
 include "./window-rules.kdl"
 include "./binds.kdl"
 
-// Existing separate file
-//
-// include "dms/windowrules.kdl"
-//
-// include "dms/cursor.kdl"
+// Static Matugen colors
+include "./colors.kdl"

@@ -1,0 +1,38 @@
+// Static snapshot of the current Matugen dark palette.
+// Source color: #b0324c
+// Update these values manually when the palette changes.
+
+layout {
+    focus-ring {
+        active-color   "#ffb2ba" // primary
+        inactive-color "#919191" // outline
+        urgent-color   "#ffb4ab" // error
+    }
+
+    border {
+        active-color   "#ffb2ba" // primary
+        inactive-color "#919191" // outline
+        urgent-color   "#ffb4ab" // error
+    }
+
+    shadow {
+        color "#00000070" // shadow with 44% opacity
+    }
+
+    tab-indicator {
+        active-color   "#ffb2ba" // primary
+        inactive-color "#474747" // outline-variant
+        urgent-color   "#ffb4ab" // error
+    }
+
+    insert-hint {
+        color "#ffb2ba80" // primary with 50% opacity
+    }
+}
+
+recent-windows {
+    highlight {
+        active-color "#ffb2ba" // primary
+        urgent-color "#ffb4ab" // error
+    }
+}
