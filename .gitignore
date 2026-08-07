@@ -1,5 +1,6 @@
 .DS_Store
 .secrets
+.firecrawl/
 
 # skills.sh generated artifacts (installed locally, never committed)
 .agents/
