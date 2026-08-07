@@ -26,13 +26,18 @@
     conflictStyle = zdiff3
 
 # Conditional identities by directory (portable via ~)
-[includeIf "gitdir:~/repos/GitHub"]
+# The trailing slash is required. Git only appends the implicit `/**` when
+# the pattern ends in `/`; without it these match the literal directory and
+# nothing beneath it, so every repo silently falls through to the global
+# identity above. Verify with:
+#   git -C ~/repos/Work/<any-repo> config --show-origin --get user.email
+[includeIf "gitdir:~/repos/GitHub/"]
     path = ~/.config/git/identities/github_personal.gitconfig
 
-[includeIf "gitdir:~/repos/Work"]
+[includeIf "gitdir:~/repos/Work/"]
     path = ~/.config/git/identities/work.gitconfig
 
-[includeIf "gitdir:~/repos/GitLab"]
+[includeIf "gitdir:~/repos/GitLab/"]
     path = ~/.config/git/identities/gitlab.gitconfig
 [credential "https://github.com"]
 	helper = 
