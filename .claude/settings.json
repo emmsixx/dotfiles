@@ -25,6 +25,7 @@
     }
   },
   "effortLevel": "high",
+  "fastMode": true,
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "verbose": true
