@@ -45,7 +45,7 @@ func TestReplacePackageUsesPlatformSpecificName(t *testing.T) {
 
 func TestFNMEnvironmentUsesSupportedShell(t *testing.T) {
 	environment := fnmEnvironment()
-	if !strings.Contains(environment, "--shell bash") || strings.Contains(environment, "--shell sh") {
-		t.Fatalf("fnmEnvironment() = %q, want a supported shell", environment)
+	if !strings.Contains(environment, "--shell zsh") || strings.Contains(environment, "--shell sh") {
+		t.Fatalf("fnmEnvironment() = %q, want Zsh", environment)
 	}
 }

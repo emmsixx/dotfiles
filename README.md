@@ -18,6 +18,8 @@ server profile and the groups you want: essentials, shell, runtimes, agent
 CLIs, agent customization, desktop tools, the optional T3 Code desktop app,
 linking, and secrets/authentication. The desktop-app installer only acts on
 officially supported paths: Homebrew Cask on macOS and `yay`/`paru` on Arch.
+The Shell group runs commands through Zsh once available and offers to make it
+your login shell.
 
 For the prior "install the normal profile" behavior, use:
 

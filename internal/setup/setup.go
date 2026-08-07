@@ -202,9 +202,21 @@ func (r Runner) installCore(o Options) error {
 }
 
 func (r Runner) installShell(o Options) error {
-	if _, err := exec.LookPath("zsh"); err != nil {
+	zsh, err := exec.LookPath("zsh")
+	if err != nil {
 		ui.Warn("zsh is unavailable; install the Shell component's package prerequisites first")
 		return nil
+	}
+	if ui.Interactive() && strings.TrimSpace(os.Getenv("SHELL")) != zsh {
+		makeDefault := true
+		if err := ui.Confirm("Make Zsh your login shell?", "This runs chsh and may ask for your password.", &makeDefault); err != nil {
+			return err
+		}
+		if makeDefault {
+			if err := r.Run("chsh", "-s", zsh); err != nil {
+				return err
+			}
+		}
 	}
 	if _, err := os.Stat(filepath.Join(o.Home, ".oh-my-zsh")); errors.Is(err, os.ErrNotExist) {
 		return r.shell("RUNZSH=no CHSH=no sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\"")
@@ -384,17 +396,21 @@ func (r Runner) installPackages(packages []string) error {
 	return r.Run(manager, args...)
 }
 
-func (r Runner) shell(command string) error { return r.Run("sh", "-c", command) }
+func (r Runner) shell(command string) error {
+	if zsh, err := exec.LookPath("zsh"); err == nil {
+		return r.Run(zsh, "-c", command)
+	}
+	return r.Run("sh", "-c", command)
+}
 
 func (r Runner) nodeShell(command string) error {
 	return r.shell(fnmEnvironment() + command)
 }
 
 func fnmEnvironment() string {
-	// The generated Bash environment uses POSIX-compatible exports and is safe
-	// to evaluate from the sh subprocess used by this CLI. FNM has no `sh`
-	// option; passing one prints an error before every Node-related action.
-	return "export PATH=\"$HOME/.local/share/fnm:$PATH\"; eval \"$(fnm env --shell bash)\"; "
+	// The setup runner prefers Zsh and the repository config is Zsh-first. FNM
+	// has no `sh` option; passing one prints an error before Node-related work.
+	return "export PATH=\"$HOME/.local/share/fnm:$PATH\"; eval \"$(fnm env --shell zsh)\"; "
 }
 
 func (r Runner) installSkills(o Options) error {
