@@ -2,6 +2,7 @@ package setup
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -39,5 +40,12 @@ func TestReplacePackageUsesPlatformSpecificName(t *testing.T) {
 	want := []string{"git", "fd-find", "ripgrep"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("replacePackage() = %#v, want %#v", got, want)
+	}
+}
+
+func TestFNMEnvironmentUsesSupportedShell(t *testing.T) {
+	environment := fnmEnvironment()
+	if !strings.Contains(environment, "--shell bash") || strings.Contains(environment, "--shell sh") {
+		t.Fatalf("fnmEnvironment() = %q, want a supported shell", environment)
 	}
 }

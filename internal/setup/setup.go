@@ -42,6 +42,7 @@ var Components = []Component{
 	{"agent-customization", "Agent customization", "Claude plugins and Pi extension dependencies.", false},
 	{"desktop", "Desktop tools", "Terminal and Linux Wayland conveniences. Not for servers.", true},
 	{"t3-desktop", "T3 Code desktop app", "Optional stable desktop app; supported automatically on macOS and Arch Linux.", true},
+	{"homebrew-upgrade", "Update Homebrew packages", "Runs brew update then brew upgrade. Optional: this may update unrelated tools.", false},
 	{"config", "Link dotfiles", "Safely stow tracked configuration into your home directory.", false},
 	{"secrets-auth", "Secrets and sign-in", "Create ~/.secrets and offer provider login flows.", false},
 	{"t3-service", "T3 Code background service", "Linux systemd server feature; usually not recommended on a desktop.", true},
@@ -113,6 +114,9 @@ func (o *Options) Choose() error {
 		defaults[id] = true
 	}
 	for _, component := range Components {
+		if component.ID == "homebrew-upgrade" && packageManager() != "brew" {
+			continue
+		}
 		if component.ID == "t3-service" && (o.Profile != "server" || runtime.GOOS != "linux") {
 			continue
 		}
@@ -165,6 +169,8 @@ func (r Runner) Apply(o Options) error {
 			err = r.installDesktop(o)
 		case "t3-desktop":
 			err = r.installT3Desktop(o)
+		case "homebrew-upgrade":
+			err = r.updateHomebrew()
 		case "config":
 			err = Link(o.Repo, o.Home, r.Run)
 		case "secrets-auth":
@@ -217,7 +223,7 @@ func (r Runner) installRuntimes(o Options) error {
 	if err != nil {
 		return err
 	}
-	if err := r.shell("export PATH=\"$HOME/.local/share/fnm:$PATH\"; eval \"$(fnm env --shell sh)\"; fnm install " + strings.TrimSpace(string(version)) + " --use; fnm default " + strings.TrimSpace(string(version))); err != nil {
+	if err := r.shell(fnmEnvironment() + "fnm install " + strings.TrimSpace(string(version)) + " --use; fnm default " + strings.TrimSpace(string(version))); err != nil {
 		return err
 	}
 	return r.shell("command -v bun >/dev/null 2>&1 || curl -fsSL https://bun.sh/install | bash; command -v pnpm >/dev/null 2>&1 || curl -fsSL https://get.pnpm.io/install.sh | sh -")
@@ -292,6 +298,17 @@ func (r Runner) installT3Desktop(o Options) error {
 		ui.Warn("install T3 Code manually; this platform has no supported automatic installer")
 		return nil
 	}
+}
+
+func (r Runner) updateHomebrew() error {
+	if packageManager() != "brew" {
+		return errors.New("Homebrew is required for the homebrew-upgrade component")
+	}
+	ui.Warn("updating all outdated Homebrew packages")
+	if err := r.Run("brew", "update"); err != nil {
+		return err
+	}
+	return r.Run("brew", "upgrade")
 }
 
 func (r Runner) configureSecretsAndAuth(o Options) error {
@@ -370,7 +387,14 @@ func (r Runner) installPackages(packages []string) error {
 func (r Runner) shell(command string) error { return r.Run("sh", "-c", command) }
 
 func (r Runner) nodeShell(command string) error {
-	return r.shell("export PATH=\"$HOME/.local/share/fnm:$PATH\"; eval \"$(fnm env --shell sh)\"; " + command)
+	return r.shell(fnmEnvironment() + command)
+}
+
+func fnmEnvironment() string {
+	// The generated Bash environment uses POSIX-compatible exports and is safe
+	// to evaluate from the sh subprocess used by this CLI. FNM has no `sh`
+	// option; passing one prints an error before every Node-related action.
+	return "export PATH=\"$HOME/.local/share/fnm:$PATH\"; eval \"$(fnm env --shell bash)\"; "
 }
 
 func (r Runner) installSkills(o Options) error {

@@ -43,6 +43,10 @@ service offered by setup is the opt-in Linux server T3 Code background service:
 Nightly is its default channel. This service is intentionally not selected by
 default and is usually unnecessary on a desktop.
 
+On a Homebrew host, the picker also offers **Update Homebrew packages**. It runs
+`brew update` followed by `brew upgrade`; it is intentionally opt-in because it
+can update tools unrelated to this repository.
+
 ## CLI
 
 ```text
