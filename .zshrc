@@ -112,6 +112,10 @@ function yeet() {
         local model="${YEET_CODEX_MODEL:-gpt-5.6-luna}"
         local reasoning_effort="${YEET_CODEX_REASONING_EFFORT:-low}"
         local branch staged_summary staged_patch prompt temp_dir subject
+        local -a codex_command=(dotfiles codex)
+        if dotfiles codex --help 2>&1 | grep -q -- '-quiet-child'; then
+            codex_command+=(--quiet-child)
+        fi
         branch="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || echo '(detached)')"
         staged_summary="$(git diff --cached --stat)"
         staged_patch="$(git diff --cached --no-ext-diff --binary)"
@@ -146,7 +150,7 @@ ${staged_patch[1,40000]}"
 EOF
 
         echo "Generating commit message with $model ($reasoning_effort)..."
-        if ! dotfiles codex --quiet-child -- --ask-for-approval never exec \
+        if ! "${codex_command[@]}" -- --ask-for-approval never exec \
             --ephemeral \
             --sandbox read-only \
             --model "$model" \

@@ -9,7 +9,7 @@ skills/
 .pi/*
 !.pi/agent/
 .pi/agent/*
-!.pi/agent/settings.json
+.pi/agent/settings.json
 !.pi/agent/AGENTS.md
 !.pi/agent/extensions/
 !.pi/agent/extensions/**

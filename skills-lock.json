@@ -19,6 +19,12 @@
       "skillPath": "skills/docx/SKILL.md",
       "computedHash": "59c70107f8eae818bdfca7da685a6e4111aa519638b667775b794cb74987ec47"
     },
+    "file-uploads": {
+      "source": "emmsixx/skills",
+      "sourceType": "github",
+      "skillPath": "file-uploads/SKILL.md",
+      "computedHash": "14ad37bfacbe6ad5b5857ebd0b0f562312f86896f73c5ce37567c77be41a9b89"
+    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",

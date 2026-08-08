@@ -188,7 +188,7 @@ func skipStowPath(relative string) bool {
 		return true
 	}
 	switch relative {
-	case "README.md", "LICENSE", "setup.sh", "setup-server.sh", ".secrets.example", ".gitmodules", ".skills", ".node-version", "skills-lock.json", ".stow-local-ignore", "go.mod", "go.sum", ".goreleaser.yaml":
+	case "README.md", "AGENTS.md", "LICENSE", "setup.sh", "setup-server.sh", ".secrets.example", ".gitmodules", ".skills", ".node-version", "skills-lock.json", ".stow-local-ignore", "go.mod", "go.sum", ".goreleaser.yaml":
 		return true
 	}
 	return false
