@@ -207,7 +207,9 @@ func (r Runner) installShell(o Options) error {
 		ui.Warn("zsh is unavailable; install the Shell component's package prerequisites first")
 		return nil
 	}
-	if ui.Interactive() && strings.TrimSpace(os.Getenv("SHELL")) != zsh {
+	// macOS already ships /bin/zsh as a supported login shell. Homebrew can put
+	// another zsh earlier on PATH, but chsh rejects that non-system path.
+	if runtime.GOOS != "darwin" && ui.Interactive() && needsZshLoginShell(os.Getenv("SHELL"), zsh) {
 		makeDefault := true
 		if err := ui.Confirm("Make Zsh your login shell?", "This runs chsh and may ask for your password.", &makeDefault); err != nil {
 			return err
@@ -223,6 +225,10 @@ func (r Runner) installShell(o Options) error {
 	}
 	ui.OK("Oh My Zsh already installed")
 	return nil
+}
+
+func needsZshLoginShell(currentShell, zshPath string) bool {
+	return filepath.Base(strings.TrimSpace(currentShell)) != filepath.Base(zshPath)
 }
 
 func (r Runner) installRuntimes(o Options) error {

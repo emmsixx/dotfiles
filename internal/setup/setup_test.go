@@ -58,3 +58,12 @@ func TestQuietCommandPreservesFailuresWithoutSuccessOutput(t *testing.T) {
 		}
 	}
 }
+
+func TestNeedsZshLoginShellRecognizesSystemAndHomebrewZsh(t *testing.T) {
+	if needsZshLoginShell("/bin/zsh", "/opt/homebrew/bin/zsh") {
+		t.Fatal("two Zsh paths should not trigger a login-shell change")
+	}
+	if !needsZshLoginShell("/bin/bash", "/usr/bin/zsh") {
+		t.Fatal("Bash should trigger a login-shell change")
+	}
+}
