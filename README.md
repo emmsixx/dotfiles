@@ -56,7 +56,7 @@ dotfiles setup [--defaults] [--components ...]
 dotfiles secrets status|edit
 dotfiles auth status|login
 dotfiles auth codex list|add NAME|login [NAME]|sync
-dotfiles codex [--account NAME] -- [codex arguments]
+dotfiles codex [--account NAME] [--quiet-child] -- [codex arguments]
 dotfiles doctor
 dotfiles completion zsh
 ```
@@ -72,7 +72,8 @@ unrelated exports are preserved.
 Codex accounts use T3 Code-compatible homes: `~/.codex` for main and
 `~/.codex-NAME` for named accounts. Named homes share non-auth Codex state but
 keep `auth.json` private. `cx` opens an account picker, and authenticated named
-accounts get `codex-NAME` launchers in `~/.local/bin`. Claude multi-account is
+accounts get `codex-NAME` launchers in `~/.local/bin`. Pass `--quiet-child` to
+hide Codex stderr after account selection; it is replayed if Codex fails. Claude multi-account is
 deliberately deferred because its credential-store isolation is not yet reliable
 across platforms.
 
@@ -105,11 +106,12 @@ manually when relevant:
 | `yeet` | generate a commit message, git add, commit, push (interactive) |
 | `y` | yazi |
 
-`yeet` opens the `dotfiles codex` account picker and generates a commit message
-with `gpt-5.6-luna` at low reasoning when no message is provided. Use
-`yeet "message"` to skip generation, `DOTFILES_CODEX_ACCOUNT` to skip the account
-picker, or `YEET_CODEX_MODEL` and `YEET_CODEX_REASONING_EFFORT` to override the
-generation defaults.
+`yeet` opens the `dotfiles codex` account picker and generates a Conventional
+Commits message with `gpt-5.6-luna` at low reasoning when no message is provided.
+Use `yeet "type: description"` to skip generation; manually supplied messages
+are rejected unless they follow Conventional Commits. Set `DOTFILES_CODEX_ACCOUNT`
+to skip the account picker, or use `YEET_CODEX_MODEL` and
+`YEET_CODEX_REASONING_EFFORT` to override the generation defaults.
 
 ## Claude Code
 
@@ -130,7 +132,8 @@ Skills are declared in `.skills` and are installed by the Agent CLIs group via
 [skills.sh](https://skills.sh/).
 
 - Skill contents are installed locally into `.agents/skills` and are not committed.
-- Generated Claude/Pi skill links are ignored and linked into `$HOME` by setup.
+- Generated skill links are ignored and linked into `~/.claude/skills` and
+  `~/.pi/agent/skills` by setup.
 - `skills-lock.json` is tracked with installed skill source and hash metadata.
 - Use `owner/repo|skill1,skill2` in `.skills` to install only selected skills.
 

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -65,7 +66,7 @@ Usage:
   dotfiles secrets [status|edit]
   dotfiles auth [status|login]
   dotfiles auth codex [list|add NAME|login NAME|sync]
-  dotfiles codex [--account NAME] -- [codex arguments]
+  dotfiles codex [--account NAME] [--quiet-child] -- [codex arguments]
   dotfiles doctor
   dotfiles completion zsh
 
@@ -124,7 +125,10 @@ _dotfiles() {
       fi
       ;;
     codex)
-      _arguments -S '--account=[Codex account]:account:->accounts' '*:Codex argument: '
+      _arguments -S \
+        '--account=[Codex account]:account:->accounts' \
+        '--quiet-child[hide Codex stderr unless it fails]' \
+        '*:Codex argument: '
       if [[ "$state" == accounts ]]; then
         accounts=("${(@f)$(dotfiles auth codex list 2>/dev/null | cut -f1)}")
         _describe 'Codex account' accounts
@@ -379,13 +383,18 @@ func (a *App) runCodexCommand(args []string) error {
 	flags := flag.NewFlagSet("codex", flag.ContinueOnError)
 	flags.SetOutput(a.Err)
 	account := flags.String("account", os.Getenv("DOTFILES_CODEX_ACCOUNT"), "Codex account")
+	quietChild := flags.Bool("quiet-child", false, "hide Codex stderr unless it fails")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	return a.RunCodex(*account, flags.Args())
+	return a.runCodex(*account, flags.Args(), *quietChild)
 }
 
 func (a *App) RunCodex(name string, args []string) error {
+	return a.runCodex(name, args, false)
+}
+
+func (a *App) runCodex(name string, args []string, quietChild bool) error {
 	accounts, err := codexhome.Discover(a.Home)
 	if err != nil {
 		return err
@@ -416,7 +425,11 @@ func (a *App) RunCodex(name string, args []string) error {
 		return err
 	}
 	codexArgs := append([]string{"-c", "cli_auth_credentials_store=\"file\""}, args...)
-	return a.runWithEnv([]string{"CODEX_HOME=" + path}, "codex", codexArgs...)
+	extraEnv := []string{"CODEX_HOME=" + path}
+	if quietChild {
+		return a.runWithQuietChild(extraEnv, "codex", codexArgs...)
+	}
+	return a.runWithEnv(extraEnv, "codex", codexArgs...)
 }
 
 func (a *App) runDoctor() error {
@@ -445,6 +458,20 @@ func (a *App) runWithEnv(extra []string, name string, args ...string) error {
 	cmd.Env = append(os.Environ(), extra...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, a.Out, a.Err
 	return cmd.Run()
+}
+
+func (a *App) runWithQuietChild(extra []string, name string, args ...string) error {
+	var childErr bytes.Buffer
+	cmd := exec.Command(name, args...)
+	cmd.Env = append(os.Environ(), extra...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, a.Out, &childErr
+	if err := cmd.Run(); err != nil {
+		if _, copyErr := io.Copy(a.Err, &childErr); copyErr != nil {
+			return errors.Join(err, copyErr)
+		}
+		return err
+	}
+	return nil
 }
 
 func splitCSV(value string) []string {

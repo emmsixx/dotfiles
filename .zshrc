@@ -118,7 +118,9 @@ function yeet() {
         prompt="You write concise git commit messages.
 Return a JSON object with keys: subject, body.
 Rules:
-- subject must be imperative, <= 72 chars, and no trailing period
+- subject must follow Conventional Commits: <type>[optional scope][!]: <description>
+- use a suitable lowercase type such as feat, fix, docs, refactor, test, build, ci, chore, perf, style, or revert
+- description must be imperative, <= 72 chars including the prefix, and have no trailing period
 - body can be an empty string or short bullet points
 - capture the primary user-visible or developer-visible change
 
@@ -144,7 +146,7 @@ ${staged_patch[1,40000]}"
 EOF
 
         echo "Generating commit message with $model ($reasoning_effort)..."
-        if ! dotfiles codex -- --ask-for-approval never exec \
+        if ! dotfiles codex --quiet-child -- --ask-for-approval never exec \
             --ephemeral \
             --sandbox read-only \
             --model "$model" \
@@ -167,6 +169,11 @@ EOF
         commit_body="$(jq -r '.body' "$temp_dir/response.json")"
         rm -rf -- "$temp_dir"
         commit_message="$subject"
+    fi
+
+    if ! printf '%s\n' "$commit_message" | grep -Eq '^[[:alnum:]][[:alnum:]_.-]*(\([^()]+\))?!?: .+'; then
+        echo "yeet: commit message must follow Conventional Commits: <type>[optional scope][!]: <description>" >&2
+        return 1
     fi
 
     echo ""
