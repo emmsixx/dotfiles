@@ -166,6 +166,12 @@ if command -v carapace >/dev/null 2>&1; then
     source <(carapace _carapace)
 fi
 
+# Native completions for the dotfiles CLI are loaded after Carapace so they
+# supplement its command coverage rather than being replaced by it.
+if command -v dotfiles >/dev/null 2>&1; then
+    source <(dotfiles completion zsh)
+fi
+
 # Starship prompt
 if command -v starship >/dev/null 2>&1; then
     eval "$(starship init zsh)"

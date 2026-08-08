@@ -39,6 +39,8 @@ func (a *App) Run(args []string) error {
 	case "-v", "--version", "version":
 		fmt.Fprintln(a.Out, a.Version)
 		return nil
+	case "completion":
+		return a.runCompletion(args[1:])
 	case "setup":
 		return a.runSetup(args[1:])
 	case "secrets":
@@ -65,6 +67,7 @@ Usage:
   dotfiles auth codex [list|add NAME|login NAME|sync]
   dotfiles codex [--account NAME] -- [codex arguments]
   dotfiles doctor
+  dotfiles completion zsh
 
 The default command is setup. --defaults bypasses the component picker but
 still creates secrets and offers authentication when running in a terminal.
@@ -72,6 +75,79 @@ codex-NAME launchers are generated for named accounts; cx opens an account
 picker through dotfiles codex.
 `)
 }
+
+func (a *App) runCompletion(args []string) error {
+	if len(args) != 1 || args[0] != "zsh" {
+		return errors.New("usage: dotfiles completion zsh")
+	}
+	_, err := fmt.Fprint(a.Out, zshCompletion)
+	return err
+}
+
+const zshCompletion = `#compdef dotfiles
+
+_dotfiles() {
+  local context state state_descr line
+  typeset -A opt_args
+  local -a accounts
+
+  case "${words[2]}" in
+    setup)
+      _arguments -S \
+        '--repo=[dotfiles repository]:directory:_files -/' \
+        '--profile=[machine profile]:profile:(desktop server)' \
+        '--defaults[use profile defaults without the picker]' \
+        '--non-interactive[never show prompts]' \
+        '--server[compatibility shorthand for --profile server]' \
+        '--components=[comma-separated setup groups]:groups:(core shell runtimes agents agent-customization desktop t3-desktop homebrew-upgrade config secrets-auth t3-service)' \
+        '--t3-service=[install the T3 service]:channel:(nightly latest)'
+      ;;
+    secrets)
+      _values 'secrets command' status edit
+      ;;
+    auth)
+      if (( CURRENT == 3 )); then
+        _values 'auth command' status login codex
+      elif [[ "${words[3]}" == codex ]]; then
+        case "${words[4]}" in
+          add)
+            _message 'account name (lowercase letters, digits, and hyphens)'
+            ;;
+          login)
+            accounts=("${(@f)$(dotfiles auth codex list 2>/dev/null | cut -f1)}")
+            _describe 'Codex account' accounts
+            ;;
+          *)
+            _values 'Codex auth command' list add login sync
+            ;;
+        esac
+      fi
+      ;;
+    codex)
+      _arguments -S '--account=[Codex account]:account:->accounts' '*:Codex argument: '
+      if [[ "$state" == accounts ]]; then
+        accounts=("${(@f)$(dotfiles auth codex list 2>/dev/null | cut -f1)}")
+        _describe 'Codex account' accounts
+      fi
+      ;;
+    completion)
+      _values 'shell' zsh
+      ;;
+    *)
+      _values 'dotfiles command' \
+        'setup[run the setup wizard]' \
+        'secrets[inspect or edit secrets]' \
+        'auth[provider authentication]' \
+        'codex[run Codex with an account]' \
+        'doctor[check installed tools]' \
+        'completion[print shell completion]' \
+        'help[show help]'
+      ;;
+  esac
+}
+
+compdef _dotfiles dotfiles
+`
 
 func (a *App) runSetup(args []string) error {
 	flags := flag.NewFlagSet("setup", flag.ContinueOnError)

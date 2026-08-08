@@ -58,7 +58,12 @@ dotfiles auth status|login
 dotfiles auth codex list|add NAME|login [NAME]|sync
 dotfiles codex [--account NAME] -- [codex arguments]
 dotfiles doctor
+dotfiles completion zsh
 ```
+
+Zsh loads the generated completion automatically after Carapace. Start a new
+shell (or run `source ~/.zshrc`) and press Tab after `dotfiles` to browse the
+available commands and flags.
 
 The initial auth wizard offers Codex, Claude Code, GitHub CLI, Firecrawl, and
 Pi. Secrets remain in `~/.secrets` with mode `0600`; existing comments and
