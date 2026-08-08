@@ -119,6 +119,27 @@ func TestRemoveAbsoluteManagedLinksRemovesOnlyCurrentCheckoutLinks(t *testing.T)
 	}
 }
 
+func TestLinkGeneratedSkillsUsesPiGlobalDirectory(t *testing.T) {
+	home := t.TempDir()
+	repo := t.TempDir()
+	source := filepath.Join(repo, ".pi", "skills", "generated")
+	if err := os.MkdirAll(source, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := linkGeneratedSkills(repo, home); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(home, ".pi", "agent", "skills", "generated")
+	link, err := os.Readlink(target)
+	if err != nil || link != source {
+		t.Fatalf("generated Pi skill link = %q, %v; want %q", link, err, source)
+	}
+	legacyTarget := filepath.Join(home, ".pi", "skills", "generated")
+	if _, err := os.Lstat(legacyTarget); !os.IsNotExist(err) {
+		t.Fatalf("legacy Pi skill target should not be created, err = %v", err)
+	}
+}
+
 func TestLinkGeneratedSkillsPreservesUnrelatedTargets(t *testing.T) {
 	home := t.TempDir()
 	repo := t.TempDir()

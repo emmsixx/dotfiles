@@ -195,8 +195,15 @@ func skipStowPath(relative string) bool {
 }
 
 func linkGeneratedSkills(repo, home string) error {
-	for _, provider := range []string{".claude", ".pi"} {
-		source := filepath.Join(repo, provider, "skills")
+	locations := []struct {
+		source string
+		target string
+	}{
+		{source: filepath.Join(".claude", "skills"), target: filepath.Join(".claude", "skills")},
+		{source: filepath.Join(".pi", "skills"), target: filepath.Join(".pi", "agent", "skills")},
+	}
+	for _, location := range locations {
+		source := filepath.Join(repo, location.source)
 		entries, err := os.ReadDir(source)
 		if errors.Is(err, os.ErrNotExist) {
 			continue
@@ -204,7 +211,7 @@ func linkGeneratedSkills(repo, home string) error {
 		if err != nil {
 			return err
 		}
-		targetDirectory := filepath.Join(home, provider, "skills")
+		targetDirectory := filepath.Join(home, location.target)
 		if err := os.MkdirAll(targetDirectory, 0o700); err != nil {
 			return err
 		}
