@@ -42,14 +42,19 @@ command -v pacman >/dev/null 2>&1 && plugins+=(archlinux)
 # Check archlinux plugin commands here
 # https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/archlinux
 
-# Display a Pokémon logo when both optional tools are available; otherwise use Fastfetch.
+# Display a Pokémon logo when both optional tools and its Fastfetch profile are
+# available; otherwise use the compact profile.
+pokemon_config="$HOME/.config/fastfetch/config-pokemon.jsonc"
+compact_config="$HOME/.config/fastfetch/config-compact.jsonc"
 if command -v pokemon-colorscripts >/dev/null 2>&1 \
-    && command -v fastfetch >/dev/null 2>&1; then
+    && command -v fastfetch >/dev/null 2>&1 \
+    && [[ -f "$pokemon_config" ]]; then
     pokemon-colorscripts --no-title -s -n "ampharos" \
-        | fastfetch -c "$HOME/.config/fastfetch/config-pokemon.jsonc" \
+        | fastfetch -c "$pokemon_config" \
             --logo-type file-raw --logo-height 10 --logo-width 5 --logo -
-elif command -v fastfetch >/dev/null 2>&1; then
-    fastfetch -c "$HOME/.config/fastfetch/config-compact.jsonc"
+elif command -v fastfetch >/dev/null 2>&1 \
+    && [[ -f "$compact_config" ]]; then
+    fastfetch -c "$compact_config"
 fi
 
 # Set-up icons for files/directories in terminal using lsd when available.
