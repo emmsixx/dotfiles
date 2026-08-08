@@ -86,18 +86,105 @@ function cx() {
     fi
 }
 function yeet() {
-	if [ -z "$1" ]; then
-		echo "Usage: yeet \"commit message\""
-		return 1
-	fi
-	git add -A
-	echo ""
-	git diff --cached --stat
-	echo ""
-	echo "Commit message: $1"
-	echo ""
-	read "?Press Enter to yeet, Ctrl+C to abort..."
-	git commit -m "$1" && git push
+    local commit_message="$*" commit_body=""
+
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "yeet: not inside a git repository" >&2
+        return 1
+    fi
+
+    git add -A || return 1
+    if git diff --cached --quiet; then
+        echo "yeet: nothing to commit"
+        return 1
+    fi
+
+    if [ -z "$commit_message" ]; then
+        if ! command -v dotfiles >/dev/null 2>&1 || ! command -v codex >/dev/null 2>&1; then
+            echo "yeet: dotfiles and codex are required to generate a commit message" >&2
+            return 1
+        fi
+        if ! command -v jq >/dev/null 2>&1; then
+            echo "yeet: jq is required to read the generated commit message" >&2
+            return 1
+        fi
+
+        local model="${YEET_CODEX_MODEL:-gpt-5.6-luna}"
+        local reasoning_effort="${YEET_CODEX_REASONING_EFFORT:-low}"
+        local branch staged_summary staged_patch prompt temp_dir subject
+        branch="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || echo '(detached)')"
+        staged_summary="$(git diff --cached --stat)"
+        staged_patch="$(git diff --cached --no-ext-diff --binary)"
+        prompt="You write concise git commit messages.
+Return a JSON object with keys: subject, body.
+Rules:
+- subject must be imperative, <= 72 chars, and no trailing period
+- body can be an empty string or short bullet points
+- capture the primary user-visible or developer-visible change
+
+Branch: ${branch}
+
+Staged files:
+${staged_summary[1,6000]}
+
+Staged patch:
+${staged_patch[1,40000]}"
+
+        temp_dir="$(mktemp -d -t yeet.XXXXXX)" || return 1
+        cat > "$temp_dir/schema.json" <<'EOF'
+{
+  "type": "object",
+  "properties": {
+    "subject": { "type": "string", "minLength": 1, "maxLength": 72 },
+    "body": { "type": "string" }
+  },
+  "required": ["subject", "body"],
+  "additionalProperties": false
+}
+EOF
+
+        echo "Generating commit message with $model ($reasoning_effort)..."
+        if ! dotfiles codex -- --ask-for-approval never exec \
+            --ephemeral \
+            --sandbox read-only \
+            --model "$model" \
+            -c "model_reasoning_effort=\"$reasoning_effort\"" \
+            --output-schema "$temp_dir/schema.json" \
+            --output-last-message "$temp_dir/response.json" \
+            --color never \
+            "$prompt" >/dev/null; then
+            rm -rf -- "$temp_dir"
+            echo "yeet: commit message generation failed" >&2
+            return 1
+        fi
+
+        if ! jq -e 'type == "object" and (.subject | type == "string" and length > 0) and (.body | type == "string")' "$temp_dir/response.json" >/dev/null; then
+            rm -rf -- "$temp_dir"
+            echo "yeet: Codex returned an invalid commit message" >&2
+            return 1
+        fi
+        subject="$(jq -r '.subject' "$temp_dir/response.json")"
+        commit_body="$(jq -r '.body' "$temp_dir/response.json")"
+        rm -rf -- "$temp_dir"
+        commit_message="$subject"
+    fi
+
+    echo ""
+    git diff --cached --stat
+    echo ""
+    echo "Commit message: $commit_message"
+    if [ -n "$commit_body" ]; then
+        echo ""
+        echo "$commit_body"
+    fi
+    echo ""
+    read "?Press Enter to yeet, Ctrl+C to abort..." || return 1
+
+    if [ -n "$commit_body" ]; then
+        git commit -m "$commit_message" -m "$commit_body" && git push
+    else
+        git commit -m "$commit_message" && git push
+    fi
 }
 function y() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd

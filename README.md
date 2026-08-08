@@ -102,8 +102,14 @@ manually when relevant:
 | `cc` | claude |
 | `ccsp` | claude --dangerously-skip-permissions |
 | `cx` | Codex account picker |
-| `yeet` | git add, commit, push (interactive) |
+| `yeet` | generate a commit message, git add, commit, push (interactive) |
 | `y` | yazi |
+
+`yeet` opens the `dotfiles codex` account picker and generates a commit message
+with `gpt-5.6-luna` at low reasoning when no message is provided. Use
+`yeet "message"` to skip generation, `DOTFILES_CODEX_ACCOUNT` to skip the account
+picker, or `YEET_CODEX_MODEL` and `YEET_CODEX_REASONING_EFFORT` to override the
+generation defaults.
 
 ## Claude Code
 
