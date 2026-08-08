@@ -6,6 +6,23 @@ import (
 	"testing"
 )
 
+func TestLinkRefusesWhenRepoAndHomeAreTheSameDirectory(t *testing.T) {
+	same := t.TempDir()
+	if err := os.WriteFile(filepath.Join(same, ".zshrc"), []byte("managed"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	err := Link(same, same, func(name string, args ...string) error {
+		t.Fatalf("run should not be called, got %s %v", name, args)
+		return nil
+	})
+	if err == nil {
+		t.Fatal("expected Link to refuse when repo and home are the same directory")
+	}
+	if _, statErr := os.Stat(filepath.Join(same, ".zshrc")); statErr != nil {
+		t.Fatalf("repo file should be untouched: %v", statErr)
+	}
+}
+
 func TestUnfoldConfigPreservesUnmanagedRuntimeData(t *testing.T) {
 	home := t.TempDir()
 	repo := t.TempDir()

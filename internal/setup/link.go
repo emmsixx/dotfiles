@@ -16,6 +16,9 @@ import (
 // Link uses Stow without directory folding. In particular, ~/.config is kept
 // as a normal directory so applications can write their own untracked state.
 func Link(repo, home string, run func(name string, args ...string) error) error {
+	if err := ensureDistinctRepoAndHome(repo, home); err != nil {
+		return err
+	}
 	if err := unfoldConfig(repo, home); err != nil {
 		return err
 	}
@@ -34,6 +37,26 @@ func Link(repo, home string, run func(name string, args ...string) error) error 
 		return err
 	}
 	ui.OK("linked tracked dotfiles without folding ~/.config")
+	return nil
+}
+
+// ensureDistinctRepoAndHome guards against repo and home resolving to the
+// same directory. backUpStowConflicts and removeAbsoluteManagedLinks rename
+// and remove paths under home on the assumption that home is never the repo
+// itself; if they alias, those "conflict" cleanups delete the repo's only
+// copy of a tracked file instead of a stray copy under home.
+func ensureDistinctRepoAndHome(repo, home string) error {
+	repoInfo, err := os.Stat(repo)
+	if err != nil {
+		return err
+	}
+	homeInfo, err := os.Stat(home)
+	if err != nil {
+		return err
+	}
+	if os.SameFile(repoInfo, homeInfo) {
+		return fmt.Errorf("refusing to link: repo %s and home %s are the same directory", repo, home)
+	}
 	return nil
 }
 
