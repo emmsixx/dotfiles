@@ -34,74 +34,86 @@
     "firecrawl": {
       "source": "firecrawl/cli",
       "sourceType": "github",
-      "skillPath": "skills/firecrawl-cli/SKILL.md",
-      "computedHash": "cfdc1b0733b7317c70ae30158e3e48a71c53099d355f43b685a020bb706e9426"
+      "skillPath": "skills/firecrawl/SKILL.md",
+      "computedHash": "6434a225f8f258fcba7bb256b0025b94296617900b3e39393071014feca25fa5"
     },
     "firecrawl-agent": {
       "source": "firecrawl/cli",
       "sourceType": "github",
       "skillPath": "skills/firecrawl-agent/SKILL.md",
-      "computedHash": "cd56d2fae177ac801d440b4ddf1fcd06d4456841a850b7a31572c4ebf5e0e356"
+      "computedHash": "52609731f61c2acb0c4bca8ba2212d07ff03d8e158c38e692a46431d6c085b28"
     },
     "firecrawl-crawl": {
       "source": "firecrawl/cli",
       "sourceType": "github",
       "skillPath": "skills/firecrawl-crawl/SKILL.md",
-      "computedHash": "bf3882a8c3d9f1c4caf4b487b81f925f8986f5c98d28326e74c71dd8cd5faf70"
+      "computedHash": "db14d09120fca01bb00bbf8d4f4fbd476239ed0b3ccd36fadb9a959614c9dada"
+    },
+    "firecrawl-developer-index": {
+      "source": "firecrawl/cli",
+      "sourceType": "github",
+      "skillPath": "skills/firecrawl-developer-index/SKILL.md",
+      "computedHash": "c6dd08ba398c400b39ed6b80661a99c19b74e139b30aca88e7d1db6efe8ef7df"
     },
     "firecrawl-download": {
       "source": "firecrawl/cli",
       "sourceType": "github",
       "skillPath": "skills/firecrawl-download/SKILL.md",
-      "computedHash": "82c403305fc798c1a29883f660a794cadce62416cf4391a02e1218ca7a6e831b"
+      "computedHash": "84bc35b5baecbf029b37f2527a144ffe33f4e27f3eab1bd8d6408a35dc87b75f"
     },
     "firecrawl-interact": {
       "source": "firecrawl/cli",
       "sourceType": "github",
       "skillPath": "skills/firecrawl-interact/SKILL.md",
-      "computedHash": "48a002789b87838d6bf2748915e653f0b0e1eb31ab183212dd522a95725a2ee3"
+      "computedHash": "eb0efffb4cec121239586199e465487a3050bf7b154786c5a8a144797e908711"
     },
     "firecrawl-map": {
       "source": "firecrawl/cli",
       "sourceType": "github",
       "skillPath": "skills/firecrawl-map/SKILL.md",
-      "computedHash": "80d4843983b4bd103e10e8e38e0b458b1478309eec3328227309a33792e2bc61"
+      "computedHash": "5087919b840d8654ed139402a766e14a95921cbbb709675ebf6931bec0dc538b"
     },
     "firecrawl-monitor": {
       "source": "firecrawl/cli",
       "sourceType": "github",
       "skillPath": "skills/firecrawl-monitor/SKILL.md",
-      "computedHash": "23c03ad57564b31f737d777e6f9857d724e659fa50f35a773a19a854b4873c64"
+      "computedHash": "cc5fed529f6b2205b699b3c8cbb5c00f8455748aed678c044761cca048fe0e78"
     },
     "firecrawl-parse": {
       "source": "firecrawl/cli",
       "sourceType": "github",
       "skillPath": "skills/firecrawl-parse/SKILL.md",
-      "computedHash": "c2902b8c18234d03556f5c1d70650a01bcbc58ed11a41f3608f99e381fe77314"
+      "computedHash": "99dcb9e05f86323fe4601c02a234372ef07815b2d332e941967027a8877a993c"
+    },
+    "firecrawl-research-index": {
+      "source": "firecrawl/cli",
+      "sourceType": "github",
+      "skillPath": "skills/firecrawl-research-index/SKILL.md",
+      "computedHash": "f8b85904d53287247d4cdb5733f3b88b08f70f6a75df7d606d460ccc854e89ca"
     },
     "firecrawl-scrape": {
       "source": "firecrawl/cli",
       "sourceType": "github",
       "skillPath": "skills/firecrawl-scrape/SKILL.md",
-      "computedHash": "5bf99d661215f0e1bb06700ba42aedf62b0a777cb099525044e5b619a380d83e"
+      "computedHash": "a7f2a64f41304b2795b632bf127116119c5636bdf7810a20d1ed375d6cb77c07"
     },
     "firecrawl-search": {
       "source": "firecrawl/cli",
       "sourceType": "github",
       "skillPath": "skills/firecrawl-search/SKILL.md",
-      "computedHash": "4c512eb1a73efbf1f961929ee1da490c9d424c7ee1a1dfea8c195a3b860717c0"
+      "computedHash": "cd13571285ba1f2f1a08f0d3786dac4430f50ace76985817b7c7ddbf276ebaa9"
     },
     "humanizer": {
       "source": "blader/humanizer",
       "sourceType": "github",
       "skillPath": "SKILL.md",
-      "computedHash": "7f032c368d4355fb237e1980d73d7febe5bc1a03bad3de74a3d4a918e8940cd1"
+      "computedHash": "a9e52ffc97e9d8fdda35a6fb3967ace6fbc1ae3a0b7703774ad077fcf1e27153"
     },
     "impeccable": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "9a5889a79096b203447966beca35bf2669bb919496264c5b985976ef1dac7321"
+      "computedHash": "fc9106b2b240a4abdbe9abf1e5d026ab06c3315f3b79b7e029383e17abb341b2"
     },
     "lecture-notes": {
       "source": "emmsixx/skills",
@@ -155,7 +167,7 @@
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/react-view-transitions/SKILL.md",
-      "computedHash": "c8952fc9127fa0564d0cb71dccb4215a5608ac933b5831104f09173a97a46f85"
+      "computedHash": "b1be40dfc6e714612020c7583b574cc4c92a1b5bc185a7dd3eea5c0123653d1c"
     },
     "web-artifacts-builder": {
       "source": "anthropics/skills",

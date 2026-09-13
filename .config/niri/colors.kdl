@@ -4,7 +4,7 @@
 
 layout {
     focus-ring {
-        active-color   "#ffb2ba" // primary
+        active-color   "#fff" // primary
         inactive-color "#919191" // outline
         urgent-color   "#ffb4ab" // error
     }

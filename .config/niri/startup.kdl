@@ -46,12 +46,11 @@ spawn-at-startup "wl-paste" "--type" "image" "--watch" "cliphist" "store"
 spawn-at-startup "com.obsproject.Studio" "--startreplaybuffer" "--disable-shutdown-check"
 
 // Communication
-spawn-at-startup "telegram-desktop" "-startintray"
 spawn-at-startup "signal-desktop"
 spawn-at-startup "thunderbird"
 
 // Other
-spawn-at-startup "app.openbubbles.OpenBubbles"
+// spawn-at-startup "app.openbubbles.OpenBubbles"
 spawn-at-startup "handy"
 // spawn-at-startup "steam" "-silent"
 
