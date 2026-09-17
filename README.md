@@ -113,6 +113,13 @@ are rejected unless they follow Conventional Commits. Set `DOTFILES_CODEX_ACCOUN
 to skip the account picker, or use `YEET_CODEX_MODEL` and
 `YEET_CODEX_REASONING_EFFORT` to override the generation defaults.
 
+## Global agent instructions
+
+Personal defaults live in `.codex/AGENTS.md`, `.claude/CLAUDE.md`, and
+`.pi/agent/AGENTS.md`, linked into the corresponding home directories by setup.
+Keep shared preferences consistent across these files. The root `AGENTS.md`
+contains instructions for contributing to this repository.
+
 ## Claude Code
 
 `CLAUDE.md` references `GH_WORK_USER` and `GH_PERSONAL_USER` from
@@ -154,6 +161,16 @@ fnm install --lts --use
 node --version > .node-version
 dotfiles setup --components runtimes
 ```
+
+## Themes
+
+Neovim uses Catppuccin, Ghostty defines its own colors, and Niri uses the colors
+in `.config/niri/layout.kdl`. These defaults work without DMS or Matugen.
+
+Generated palettes (`colors/dms.lua` and `lua/plugins/dankcolors.lua` in Neovim,
+`themes/dankcolors` in Ghostty, and `colors.kdl` or `dms/` in Niri) are local
+files. Git ignores them and setup does not link them. Any DMS integration is
+configured separately on the machine that uses it.
 
 ## Structure
 

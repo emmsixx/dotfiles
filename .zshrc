@@ -9,6 +9,7 @@ else
     export VISUAL="vi"
 fi
 export ZSH="$HOME/.oh-my-zsh"
+export PATH="$HOME/.local/bin:$PATH"
 
 # secrets
 [ -f "$HOME/.secrets" ] && source "$HOME/.secrets"
@@ -23,6 +24,7 @@ done
 
 # FNM / Node.js
 [ -x "$HOME/.local/share/fnm/fnm" ] && export PATH="$HOME/.local/share/fnm:$PATH"
+[ -x "$HOME/Library/Application Support/fnm/fnm" ] && export PATH="$HOME/Library/Application Support/fnm:$PATH"
 if command -v fnm >/dev/null 2>&1; then
     eval "$(fnm env --use-on-cd --shell zsh)"
 fi
@@ -32,9 +34,11 @@ ZSH_THEME="" # disabled in favour of starship
 plugins=(
     git
     sudo
-    zsh-autosuggestions
-    zsh-syntax-highlighting
 )
+for plugin in zsh-autosuggestions zsh-syntax-highlighting; do
+    [[ -r "${ZSH_CUSTOM:-$ZSH/custom}/plugins/$plugin/$plugin.plugin.zsh" ]] && plugins+=("$plugin")
+done
+unset plugin
 command -v pacman >/dev/null 2>&1 && plugins+=(archlinux)
 
 [ -r "$ZSH/oh-my-zsh.sh" ] && source "$ZSH/oh-my-zsh.sh"
@@ -243,8 +247,8 @@ unset _dotfiles_profile _dotfiles_profile_file
 # pnpm
 export PNPM_HOME="$HOME/.local/share/pnpm"
 case ":$PATH:" in
-  *":$PNPM_HOME/bin:"*) ;;
-  *) export PATH="$PNPM_HOME/bin:$PATH" ;;
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
 
@@ -286,10 +290,3 @@ fi
 # Disabled to avoid Vite+ overriding your global node/npm versions.
 # Use manually when needed:
 #   . "$HOME/.vite-plus/env"
-
-# >>> Codex installer >>>
-export PATH="/home/ali/.local/bin:$PATH"
-# <<< Codex installer <<<
-
-# Pi
-export PATH="/home/six/.local/share/fnm/node-versions/v24.18.0/installation/bin:$PATH"

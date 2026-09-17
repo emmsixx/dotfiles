@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/emmsixx/dotfiles/internal/codexhome"
+	"github.com/emmsixx/dotfiles/internal/gitidentity"
 	"github.com/emmsixx/dotfiles/internal/secrets"
 	"github.com/emmsixx/dotfiles/internal/setup"
 	"github.com/emmsixx/dotfiles/internal/ui"
@@ -162,7 +163,7 @@ func (a *App) runSetup(args []string) error {
 	flags.StringVar(&o.Repo, "repo", os.Getenv("DOTFILES_DIR"), "dotfiles repository")
 	flags.StringVar(&o.Profile, "profile", os.Getenv("DOTFILES_PROFILE"), "desktop or server")
 	flags.BoolVar(&o.Defaults, "defaults", false, "use profile defaults without a picker")
-	flags.BoolVar(&o.NonInteractive, "non-interactive", false, "never show secret/auth prompts")
+	flags.BoolVar(&o.NonInteractive, "non-interactive", false, "never show prompts")
 	flags.BoolVar(&server, "server", false, "compatibility shorthand for --profile server")
 	flags.StringVar(&componentCSV, "components", "", "comma-separated component IDs")
 	flags.StringVar(&o.T3Channel, "t3-service", "", "install the T3 service from nightly or latest")
@@ -176,7 +177,7 @@ func (a *App) runSetup(args []string) error {
 		o.Profile = "server"
 	}
 	o.Home = a.Home
-	return (setup.Runner{Run: a.run}).Apply(o)
+	return (setup.Runner{Run: a.run, Login: a.authLogin}).Apply(o)
 }
 
 func (a *App) runSecrets(args []string) error {
@@ -325,15 +326,26 @@ func (a *App) loginCodex(name string) error {
 	if err != nil {
 		return err
 	}
+	if name == "main" {
+		if err := os.MkdirAll(path, 0o700); err != nil {
+			return err
+		}
+	}
 	if name != "main" {
 		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 			if _, err := codexhome.Create(a.Home, name); err != nil {
 				return err
 			}
 		}
+		if err := codexhome.ValidateHome(path, false); err != nil {
+			return err
+		}
 		if err := codexhome.SyncShared(a.Home, path); err != nil {
 			return err
 		}
+	}
+	if err := codexhome.ValidateHome(path, false); err != nil {
+		return err
 	}
 	if err := a.runWithEnv([]string{"CODEX_HOME=" + path}, "codex", "-c", "cli_auth_credentials_store=\"file\"", "login", "--device-auth"); err != nil {
 		return err
@@ -366,6 +378,17 @@ func (a *App) syncLaunchers() error {
 		if info, err := os.Lstat(launcher); err == nil {
 			if info.Mode()&os.ModeSymlink == 0 {
 				ui.Warn("preserving non-symlink launcher " + launcher)
+				continue
+			}
+			link, err := os.Readlink(launcher)
+			if err != nil {
+				return err
+			}
+			if !filepath.IsAbs(link) {
+				link = filepath.Join(bin, link)
+			}
+			if filepath.Clean(link) != filepath.Clean(self) {
+				ui.Warn("preserving unrelated launcher " + launcher)
 				continue
 			}
 			if err := os.Remove(launcher); err != nil {
@@ -421,6 +444,9 @@ func (a *App) runCodex(name string, args []string, quietChild bool) error {
 	if _, err := os.Stat(path); err != nil {
 		return fmt.Errorf("Codex account %q does not exist; run `dotfiles auth codex add %s`", name, name)
 	}
+	if err := codexhome.ValidateHome(path, true); err != nil {
+		return err
+	}
 	if err := codexhome.SyncShared(a.Home, path); err != nil {
 		return err
 	}
@@ -445,6 +471,13 @@ func (a *App) runDoctor() error {
 		fmt.Fprintln(a.Out, "! ~/.config is folded into a repository; run `dotfiles setup --components config`")
 	} else {
 		fmt.Fprintln(a.Out, "✓ ~/.config is a normal directory")
+	}
+	for _, profile := range gitidentity.Profiles {
+		if gitidentity.Configured(a.Home, profile) {
+			fmt.Fprintf(a.Out, "✓ %s Git identity configured\n", profile.Name)
+		} else {
+			fmt.Fprintf(a.Out, "! %s Git identity missing or incomplete: %s\n", profile.Name, gitidentity.Path(a.Home, profile))
+		}
 	}
 	return a.runCodexAuth([]string{"list"})
 }

@@ -42,7 +42,7 @@ function deadline<A>(operation: Promise<A>, timeoutMs: number) {
 
 test(
   "Claude backend completes a live manager run",
-  { timeout: 60_000 },
+  { skip: process.env.DOTFILES_LIVE_TESTS !== "1", timeout: 60_000 },
   async (t) => {
     if (!(await claudeAvailable())) {
       t.skip("Claude Code executable is unavailable");
@@ -71,7 +71,7 @@ test(
 
 test(
   "Claude backend interrupt settles a live run as aborted",
-  { timeout: 60_000 },
+  { skip: process.env.DOTFILES_LIVE_TESTS !== "1", timeout: 60_000 },
   async (t) => {
     if (!(await claudeAvailable())) {
       t.skip("Claude Code executable is unavailable");

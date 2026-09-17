@@ -6,45 +6,191 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"strings"
-	"time"
 
 	"github.com/emmsixx/dotfiles/internal/ui"
 )
 
-// Link uses Stow without directory folding. In particular, ~/.config is kept
-// as a normal directory so applications can write their own untracked state.
-func Link(repo, home string, run func(name string, args ...string) error) error {
-	if err := ensureDistinctRepoAndHome(repo, home); err != nil {
-		return err
+type linkSpec struct{ relative, source string }
+type linkJournal struct{ undo []func() error }
+
+func (j *linkJournal) rollback() error {
+	var failures []error
+	for i := len(j.undo) - 1; i >= 0; i-- {
+		failures = append(failures, j.undo[i]())
 	}
-	if err := unfoldConfig(repo, home); err != nil {
-		return err
-	}
-	if err := removeAbsoluteManagedLinks(repo, home); err != nil {
-		return err
-	}
-	restore, err := backUpStowConflicts(repo, home)
+	return errors.Join(failures...)
+}
+
+// Link gives Stow the same tracked-file inventory used by the preflight. All
+// home mutations, including folded directories and generated skills, are
+// journaled; a failed operation restores the previous configuration.
+func Link(repo, home string, run func(string, ...string) error) (result error) {
+	var err error
+	repo, err = filepath.EvalSymlinks(repo)
 	if err != nil {
 		return err
 	}
-	if err := run("stow", "--no-folding", "--restow", "-d", repo, "-t", home, "."); err != nil {
-		restore()
-		return fmt.Errorf("stow dotfiles: %w", err)
-	}
-	if err := linkGeneratedSkills(repo, home); err != nil {
+	repo, err = filepath.Abs(repo)
+	if err != nil {
 		return err
 	}
-	ui.OK("linked tracked dotfiles without folding ~/.config")
+	home, err = filepath.EvalSymlinks(home)
+	if err != nil {
+		return err
+	}
+	home, err = filepath.Abs(home)
+	if err != nil {
+		return err
+	}
+	if err := ensureDistinctRepoAndHome(repo, home); err != nil {
+		return err
+	}
+	tracked, err := managedFiles(repo)
+	if err != nil {
+		return err
+	}
+	generated, err := generatedSkills(repo, home)
+	if err != nil {
+		return err
+	}
+	specs := append(append([]linkSpec{}, tracked...), generated...)
+	dirs := linkDirectories(specs)
+	folded, err := preflightLinks(repo, home, dirs, specs)
+	if err != nil {
+		return err
+	}
+
+	backupParent := filepath.Join(home, ".dotfiles-backups")
+	if info, err := os.Lstat(backupParent); err == nil {
+		if !info.IsDir() {
+			return fmt.Errorf("backup directory %s must be a real directory", backupParent)
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := os.MkdirAll(backupParent, 0o700); err != nil {
+		return err
+	}
+	backup, err := os.MkdirTemp(backupParent, "link-")
+	if err != nil {
+		return err
+	}
+
+	journal := &linkJournal{}
+	defer func() {
+		if result != nil {
+			if err := journal.rollback(); err != nil {
+				result = errors.Join(result, fmt.Errorf("restore previous configuration: %w", err))
+			}
+		}
+	}()
+	managed := map[string]bool{}
+	for _, spec := range tracked {
+		managed[spec.relative] = true
+	}
+	for _, dir := range dirs {
+		target := filepath.Join(home, dir)
+		if folded[dir] {
+			staged := filepath.Join(backup, "unfolded", dir)
+			if err := copyUnmanaged(filepath.Join(repo, dir), staged, dir, managed); err != nil {
+				return err
+			}
+			saved := filepath.Join(backup, "links", dir)
+			if err := os.MkdirAll(filepath.Dir(saved), 0o700); err != nil {
+				return err
+			}
+			if err := os.Rename(target, saved); err != nil {
+				return err
+			}
+			journal.undo = append(journal.undo, func() error {
+				if _, err := os.Lstat(target); err == nil {
+					// Keep the replacement tree as recovery data, including
+					// anything an application wrote during the operation.
+					if err := os.Rename(target, staged); err != nil {
+						return err
+					}
+				} else if !errors.Is(err, os.ErrNotExist) {
+					return err
+				}
+				return os.Rename(saved, target)
+			})
+			if err := os.Rename(staged, target); err != nil {
+				return err
+			}
+		} else if _, err := os.Lstat(target); errors.Is(err, os.ErrNotExist) {
+			if err := os.Mkdir(target, 0o700); err != nil {
+				return err
+			}
+			journal.undo = append(journal.undo, func() error { return os.Remove(target) })
+		} else if err != nil {
+			return err
+		}
+	}
+	for _, spec := range specs {
+		target, source := filepath.Join(home, spec.relative), spec.source
+		info, err := os.Lstat(target)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		if err == nil {
+			saved := filepath.Join(backup, "conflicts", spec.relative)
+			if err := os.MkdirAll(filepath.Dir(saved), 0o700); err != nil {
+				return err
+			}
+			if !info.Mode().IsRegular() && info.Mode()&fs.ModeSymlink == 0 {
+				return fmt.Errorf("unexpected conflict at %s", target)
+			}
+			if err := os.Rename(target, saved); err != nil {
+				return err
+			}
+			journal.undo = append(journal.undo, func() error {
+				if err := removeInstalledLink(target, source); err != nil {
+					return err
+				}
+				return os.Rename(saved, target)
+			})
+		} else {
+			journal.undo = append(journal.undo, func() error { return removeInstalledLink(target, source) })
+		}
+	}
+	allowed := map[string]bool{}
+	for _, spec := range tracked {
+		allowed[spec.relative] = true
+		for dir := filepath.Dir(spec.relative); dir != "."; dir = filepath.Dir(dir) {
+			allowed[dir] = true
+		}
+	}
+	patterns := make([]string, 0, len(allowed))
+	for path := range allowed {
+		patterns = append(patterns, regexp.QuoteMeta(filepath.ToSlash(path)))
+	}
+	sort.Strings(patterns)
+	// Stow uses Perl regexes on paths relative to the target. A negative
+	// lookahead excludes every path outside the inventory, including new
+	// runtime files that appear after preflight.
+	ignore := "^(?!(?:" + strings.Join(patterns, "|") + ")$).*"
+	if err := run("stow", "--no-folding", "--restow", "--ignore="+ignore, "-d", repo, "-t", home, "."); err != nil {
+		return fmt.Errorf("stow dotfiles: %w", err)
+	}
+	for _, spec := range tracked {
+		if !sameLinkTarget(filepath.Join(home, spec.relative), spec.source) {
+			return fmt.Errorf("Stow did not link %s; check .stow-local-ignore", spec.relative)
+		}
+	}
+	for _, spec := range generated {
+		if err := os.Symlink(spec.source, filepath.Join(home, spec.relative)); err != nil {
+			return err
+		}
+	}
+	ui.OK("linked tracked dotfiles; recovery data: " + backup)
 	return nil
 }
 
-// ensureDistinctRepoAndHome guards against repo and home resolving to the
-// same directory. backUpStowConflicts and removeAbsoluteManagedLinks rename
-// and remove paths under home on the assumption that home is never the repo
-// itself; if they alias, those "conflict" cleanups delete the repo's only
-// copy of a tracked file instead of a stray copy under home.
 func ensureDistinctRepoAndHome(repo, home string) error {
 	repoInfo, err := os.Stat(repo)
 	if err != nil {
@@ -57,270 +203,263 @@ func ensureDistinctRepoAndHome(repo, home string) error {
 	if os.SameFile(repoInfo, homeInfo) {
 		return fmt.Errorf("refusing to link: repo %s and home %s are the same directory", repo, home)
 	}
+	relative, err := filepath.Rel(repo, home)
+	if err != nil {
+		return err
+	}
+	if relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return errors.New("the home directory must not be inside the dotfiles repository")
+	}
 	return nil
 }
 
-// removeAbsoluteManagedLinks removes only links that point directly at the
-// current checkout's managed path. Stow deliberately refuses those absolute
-// links because they are not portable; removing them lets --restow recreate a
-// normal relative link. Unrelated links are left untouched.
-func removeAbsoluteManagedLinks(repo, home string) error {
-	return filepath.WalkDir(repo, func(source string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
+func managedFiles(repo string) ([]linkSpec, error) {
+	output, err := exec.Command("git", "-C", repo, "ls-files", "--cached", "--recurse-submodules", "-z").Output()
+	if err != nil {
+		return nil, fmt.Errorf("read tracked dotfiles (a Git checkout with initialized submodules is required): %w", err)
+	}
+	var files []linkSpec
+	for _, relative := range strings.Split(string(output), "\x00") {
+		if relative == "" || skipStowPath(relative) {
+			continue
 		}
-		relative, err := filepath.Rel(repo, source)
+		source := filepath.Join(repo, relative)
+		info, err := os.Lstat(source)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		} // respect local deletions
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if relative == "." || skipStowPath(relative) {
-			if entry.IsDir() && relative != "." {
-				return filepath.SkipDir
+		if info.IsDir() {
+			return nil, fmt.Errorf("initialize submodule %s before linking", relative)
+		}
+		if !info.Mode().IsRegular() && info.Mode()&fs.ModeSymlink == 0 {
+			return nil, fmt.Errorf("unsupported managed file %s", source)
+		}
+		for dir := filepath.Dir(source); dir != repo; dir = filepath.Dir(dir) {
+			parent, err := os.Lstat(dir)
+			if err != nil {
+				return nil, err
 			}
-			return nil
+			if !parent.IsDir() {
+				return nil, fmt.Errorf("managed source directory %s must not be a symlink", dir)
+			}
+		}
+		files = append(files, linkSpec{relative, source})
+	}
+	if len(files) == 0 {
+		return nil, errors.New("no tracked configuration files found")
+	}
+	return files, nil
+}
+
+func linkDirectories(specs []linkSpec) []string {
+	unique := map[string]bool{".config": true}
+	for _, spec := range specs {
+		for dir := filepath.Dir(spec.relative); dir != "."; dir = filepath.Dir(dir) {
+			unique[dir] = true
+		}
+	}
+	dirs := make([]string, 0, len(unique))
+	for dir := range unique {
+		dirs = append(dirs, dir)
+	}
+	sort.Strings(dirs) // parents sort before their children
+	return dirs
+}
+
+func underFolded(relative string, folded map[string]bool) bool {
+	for dir := filepath.Dir(relative); dir != "."; dir = filepath.Dir(dir) {
+		if folded[dir] {
+			return true
+		}
+	}
+	return false
+}
+
+func preflightLinks(repo, home string, dirs []string, specs []linkSpec) (map[string]bool, error) {
+	folded := map[string]bool{}
+	for _, relative := range dirs {
+		if underFolded(relative, folded) {
+			continue
 		}
 		target := filepath.Join(home, relative)
 		info, err := os.Lstat(target)
 		if errors.Is(err, os.ErrNotExist) {
-			return nil
+			continue
 		}
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if info.Mode()&fs.ModeSymlink == 0 {
-			return nil
+		if info.Mode()&fs.ModeSymlink != 0 && sameLinkTarget(target, filepath.Join(repo, relative)) {
+			folded[relative] = true
+		} else if !info.IsDir() {
+			return nil, fmt.Errorf("preserving unrelated directory target %s; move it manually before linking", target)
 		}
-		link, err := os.Readlink(target)
-		if err != nil {
-			return err
-		}
-		if !filepath.IsAbs(link) || filepath.Clean(link) != filepath.Clean(source) {
-			return nil
-		}
-		if err := os.Remove(target); err != nil {
-			return fmt.Errorf("remove absolute managed link %s: %w", target, err)
-		}
-		ui.Warn("replaced non-portable absolute link " + target)
-		return nil
-	})
-}
-
-type movedTarget struct {
-	original string
-	backup   string
-}
-
-// backUpStowConflicts moves only regular source-file conflicts, never whole
-// configuration directories. This keeps provider-owned state in ~/.claude,
-// ~/.config, and similar roots intact while preserving user-edited files.
-func backUpStowConflicts(repo, home string) (func(), error) {
-	backupRoot := filepath.Join(home, ".dotfiles-backups", time.Now().Format("20060102-150405"), "conflicts")
-	moved := []movedTarget{}
-	err := filepath.WalkDir(repo, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		relative, err := filepath.Rel(repo, path)
-		if err != nil {
-			return err
-		}
-		if relative == "." {
-			return nil
-		}
-		if entry.IsDir() {
-			if skipStowPath(relative) {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if skipStowPath(relative) {
-			return nil
-		}
-		info, err := entry.Info()
-		if err != nil || !info.Mode().IsRegular() {
-			return err
-		}
-		target := filepath.Join(home, relative)
-		targetInfo, err := os.Lstat(target)
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		if targetInfo.Mode()&fs.ModeSymlink != 0 {
-			return nil
-		}
-		backup := filepath.Join(backupRoot, relative)
-		if err := os.MkdirAll(filepath.Dir(backup), 0o700); err != nil {
-			return err
-		}
-		if err := os.Rename(target, backup); err != nil {
-			return fmt.Errorf("back up %s: %w", target, err)
-		}
-		moved = append(moved, movedTarget{original: target, backup: backup})
-		ui.Warn("moved existing " + target + " to " + backup)
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
-	return func() {
-		for index := len(moved) - 1; index >= 0; index-- {
-			item := moved[index]
-			if info, err := os.Lstat(item.original); err == nil && info.Mode()&fs.ModeSymlink != 0 {
-				_ = os.Remove(item.original)
-			}
-			if _, err := os.Lstat(item.original); errors.Is(err, os.ErrNotExist) {
-				_ = os.MkdirAll(filepath.Dir(item.original), 0o700)
-				_ = os.Rename(item.backup, item.original)
-			}
+	for _, spec := range specs {
+		if underFolded(spec.relative, folded) {
+			continue
 		}
-	}, nil
+		target := filepath.Join(home, spec.relative)
+		info, err := os.Lstat(target)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if info.Mode()&fs.ModeSymlink != 0 {
+			if !sameLinkTarget(target, spec.source) {
+				return nil, fmt.Errorf("preserving unrelated link %s", target)
+			}
+		} else if !info.Mode().IsRegular() {
+			return nil, fmt.Errorf("preserving non-file conflict %s", target)
+		}
+	}
+	return folded, nil
+}
+
+func sameLinkTarget(link, source string) bool {
+	destination, err := os.Readlink(link)
+	if err != nil {
+		return false
+	}
+	if !filepath.IsAbs(destination) {
+		destination = filepath.Join(filepath.Dir(link), destination)
+	}
+	if filepath.Clean(destination) == filepath.Clean(source) {
+		return true
+	}
+	left, leftErr := os.Stat(destination)
+	right, rightErr := os.Stat(source)
+	return leftErr == nil && rightErr == nil && os.SameFile(left, right)
+}
+
+func removeInstalledLink(target, source string) error {
+	info, err := os.Lstat(target)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if info.Mode()&fs.ModeSymlink == 0 || !sameLinkTarget(target, source) {
+		return fmt.Errorf("cannot roll back %s: it changed during linking; recovery data was retained", target)
+	}
+	return os.Remove(target)
 }
 
 func skipStowPath(relative string) bool {
-	first := strings.Split(relative, string(filepath.Separator))[0]
-	if first == ".git" || first == ".agents" || first == ".github" || first == "cmd" || first == "internal" || first == "skills" {
+	parts := strings.Split(filepath.ToSlash(relative), "/")
+	for _, part := range parts {
+		if part == ".git" || part == ".gitignore" || part == ".DS_Store" || part == "node_modules" {
+			return true
+		}
+	}
+	switch parts[0] {
+	case ".agents", ".github", "cmd", "internal", "skills", ".firecrawl", ".secrets", ".dotfiles-backups":
 		return true
 	}
-	if strings.HasPrefix(relative, filepath.Join(".claude", "skills")) || strings.HasPrefix(relative, filepath.Join(".pi", "skills")) {
+	path := filepath.ToSlash(relative)
+	if strings.HasPrefix(parts[0], "LICENSE") {
+		return true
+	}
+	if strings.HasPrefix(path, ".pi/agent/extensions/") {
+		for _, part := range parts {
+			if part == "bin" {
+				return true
+			}
+		}
+	}
+	if strings.HasPrefix(path, ".codex/") && path != ".codex/AGENTS.md" && !strings.HasPrefix(path, ".codex/rules/") {
+		return true
+	}
+	if strings.HasPrefix(path, ".claude/") && path != ".claude/CLAUDE.md" && path != ".claude/settings.json" {
+		return true
+	}
+	if strings.HasPrefix(path, ".pi/") && path != ".pi/agent/AGENTS.md" && !strings.HasPrefix(path, ".pi/agent/extensions/") && !strings.HasPrefix(path, ".pi/agent/skills/") {
+		return true
+	}
+	switch path {
+	case ".config/nvim/colors/dms.lua", ".config/nvim/lua/plugins/dankcolors.lua",
+		".config/ghostty/themes/dankcolors", ".config/niri/colors.kdl":
+		return true
+	}
+	for _, prefix := range []string{".config/gh", ".config/firecrawl-cli", ".config/astro", ".config/systemd", ".config/git/identities", ".config/niri/dms"} {
+		if path == prefix || strings.HasPrefix(path, prefix+"/") {
+			return true
+		}
+	}
+	if strings.Contains(path, "/config.private.json") || strings.HasPrefix(path, ".pi/agent/extensions/bin/") {
 		return true
 	}
 	switch relative {
-	case "README.md", "AGENTS.md", "LICENSE", "setup.sh", "setup-server.sh", ".secrets.example", ".gitmodules", ".skills", ".node-version", "skills-lock.json", ".stow-local-ignore", "go.mod", "go.sum", ".goreleaser.yaml":
+	case "README.md", "AGENTS.md", "LICENSE", "setup.sh", "setup-server.sh", ".secrets.example", ".gitmodules", ".skills", ".node-version", "skills-lock.json", ".stow-local-ignore", "go.mod", "go.sum", ".goreleaser.yaml", "dotfiles":
 		return true
 	}
 	return false
 }
 
-func linkGeneratedSkills(repo, home string) error {
-	locations := []struct {
-		source string
-		target string
-	}{
-		{source: filepath.Join(".claude", "skills"), target: filepath.Join(".claude", "skills")},
-		{source: filepath.Join(".pi", "skills"), target: filepath.Join(".pi", "agent", "skills")},
-	}
-	for _, location := range locations {
-		source := filepath.Join(repo, location.source)
-		entries, err := os.ReadDir(source)
+func generatedSkills(repo, home string) ([]linkSpec, error) {
+	var result []linkSpec
+	for _, location := range [][2]string{{".claude/skills", ".claude/skills"}, {".pi/skills", ".pi/agent/skills"}} {
+		entries, err := os.ReadDir(filepath.Join(repo, location[0]))
 		if errors.Is(err, os.ErrNotExist) {
 			continue
 		}
 		if err != nil {
-			return err
-		}
-		targetDirectory := filepath.Join(home, location.target)
-		if err := os.MkdirAll(targetDirectory, 0o700); err != nil {
-			return err
+			return nil, err
 		}
 		for _, entry := range entries {
-			sourcePath := filepath.Join(source, entry.Name())
-			targetPath := filepath.Join(targetDirectory, entry.Name())
-			if existing, err := os.Lstat(targetPath); err == nil {
-				if existing.Mode()&fs.ModeSymlink == 0 {
-					ui.Warn("preserving existing generated-skill target " + targetPath)
-					continue
-				}
-				link, err := os.Readlink(targetPath)
-				if err != nil {
-					return err
-				}
-				if link != sourcePath {
-					ui.Warn("preserving unrelated generated-skill link " + targetPath)
-					continue
-				}
-				if err := os.Remove(targetPath); err != nil {
-					return err
-				}
-			} else if !errors.Is(err, os.ErrNotExist) {
-				return err
+			source := filepath.Join(repo, location[0], entry.Name())
+			relative := filepath.Join(location[1], entry.Name())
+			target := filepath.Join(home, relative)
+			if _, err := os.Stat(source); err != nil {
+				return nil, fmt.Errorf("read generated skill %s: %w", source, err)
 			}
-			if err := os.Symlink(sourcePath, targetPath); err != nil {
-				return err
+			if _, err := os.Lstat(target); err == nil && !sameLinkTarget(target, source) {
+				ui.Warn("preserving existing generated-skill target " + target)
+				continue
+			} else if err != nil && !errors.Is(err, os.ErrNotExist) {
+				return nil, err
 			}
+			result = append(result, linkSpec{relative, source})
 		}
 	}
-	return nil
+	return result, nil
 }
 
-func unfoldConfig(repo, home string) error {
-	destination := filepath.Join(home, ".config")
-	info, err := os.Lstat(destination)
-	if errors.Is(err, os.ErrNotExist) {
-		return os.MkdirAll(destination, 0o700)
+// Copy everything except managed leaves before replacing a folded directory.
+// Untracked state inside managed application directories is preserved too.
+func copyUnmanaged(source, destination, relative string, managed map[string]bool) error {
+	if managed[relative] {
+		return nil
 	}
+	info, err := os.Lstat(source)
 	if err != nil {
 		return err
 	}
-	if info.Mode()&fs.ModeSymlink == 0 {
-		if info.IsDir() {
-			return nil
-		}
-		return fmt.Errorf("%s is not a directory", destination)
+	if !info.IsDir() {
+		return copyTree(source, destination)
 	}
-
-	target, err := filepath.EvalSymlinks(destination)
-	if err != nil {
-		return fmt.Errorf("resolve folded ~/.config: %w", err)
-	}
-	targetInfo, err := os.Stat(target)
-	if err != nil || !targetInfo.IsDir() {
-		return fmt.Errorf("folded ~/.config target %s is not a directory", target)
-	}
-
-	managed, err := managedConfigNames(filepath.Join(repo, ".config"))
-	if err != nil {
+	if err := os.MkdirAll(destination, info.Mode().Perm()); err != nil {
 		return err
 	}
-	backup := filepath.Join(home, ".dotfiles-backups", time.Now().Format("20060102-150405"), "config-runtime")
-	entries, err := os.ReadDir(target)
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(backup, 0o700); err != nil {
-		return err
-	}
-	// Copy (rather than move) unmanaged data first. It remains in the old
-	// checkout until Stow succeeds, and the backup is an additional recovery
-	// point if the host is interrupted during the migration.
-	for _, entry := range entries {
-		if managed[entry.Name()] {
-			continue
-		}
-		if err := copyTree(filepath.Join(target, entry.Name()), filepath.Join(backup, entry.Name())); err != nil {
-			return fmt.Errorf("back up ~/.config/%s: %w", entry.Name(), err)
-		}
-	}
-	if err := os.Remove(destination); err != nil {
-		return fmt.Errorf("remove folded ~/.config symlink: %w", err)
-	}
-	if err := os.Mkdir(destination, 0o700); err != nil {
-		return err
-	}
-	for _, entry := range entries {
-		if managed[entry.Name()] {
-			continue
-		}
-		if err := copyTree(filepath.Join(backup, entry.Name()), filepath.Join(destination, entry.Name())); err != nil {
-			return fmt.Errorf("restore ~/.config/%s: %w", entry.Name(), err)
-		}
-	}
-	ui.OK("migrated folded ~/.config; preserved unmanaged runtime data in " + backup)
-	return nil
-}
-
-func managedConfigNames(source string) (map[string]bool, error) {
 	entries, err := os.ReadDir(source)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	names := make(map[string]bool, len(entries))
 	for _, entry := range entries {
-		names[entry.Name()] = true
+		if entry.Name() == ".git" {
+			continue
+		}
+		if err := copyUnmanaged(filepath.Join(source, entry.Name()), filepath.Join(destination, entry.Name()), filepath.Join(relative, entry.Name()), managed); err != nil {
+			return err
+		}
 	}
-	return names, nil
+	return nil
 }
 
 func copyTree(source, destination string) error {
@@ -333,10 +472,16 @@ func copyTree(source, destination string) error {
 		if err != nil {
 			return err
 		}
+		if !filepath.IsAbs(link) {
+			link = filepath.Join(filepath.Dir(source), link)
+		}
 		return os.Symlink(link, destination)
 	}
-	if !info.IsDir() {
+	if info.Mode().IsRegular() {
 		return copyFile(source, destination, info.Mode())
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("cannot safely copy runtime file %s (%s)", source, info.Mode())
 	}
 	if err := os.MkdirAll(destination, info.Mode().Perm()); err != nil {
 		return err
@@ -367,14 +512,5 @@ func copyFile(source, destination string, mode fs.FileMode) error {
 		return err
 	}
 	_, copyErr := io.Copy(out, in)
-	closeErr := out.Close()
-	if copyErr != nil {
-		return copyErr
-	}
-	return closeErr
-}
-
-func IsManagedConfigPath(repo, configPath string) bool {
-	relative, err := filepath.Rel(filepath.Join(repo, ".config"), configPath)
-	return err == nil && relative != "." && !strings.HasPrefix(relative, "..")
+	return errors.Join(copyErr, out.Close())
 }

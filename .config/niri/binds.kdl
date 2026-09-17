@@ -75,10 +75,8 @@ binds {
     Mod+Alt+Ctrl+Shift+F { fullscreen-window; }
 
     // --- Web Apps ---
-    // HYPER + A -> Gemini
-    // Mod+Alt+Ctrl+Shift+A { spawn "xdg-open" "https://gemini.google.com/u/9/"; }
-    // Mod+Alt+Ctrl+Shift+A { spawn "xdg-open" "https://t3.chat"; }
-    Mod+Alt+Ctrl+Shift+A { spawn-sh "dms ipc call plugins toggle aiAssistant"; }
+    // HYPER + A -> T3 Chat
+    Mod+Alt+Ctrl+Shift+A { spawn "xdg-open" "https://t3.chat"; }
 
     // HYPER + X -> Twitter/X
     Mod+Alt+Ctrl+Shift+X { spawn "xdg-open" "https://x.com"; }

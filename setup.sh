@@ -81,4 +81,6 @@ fi
 mkdir -p "$install_dir"
 install -m 0755 "$binary" "$install_dir/dotfiles"
 
+rm -rf "$tmpdir"
+trap - EXIT HUP INT TERM
 exec "$install_dir/dotfiles" setup --repo "$script_dir" "$@"

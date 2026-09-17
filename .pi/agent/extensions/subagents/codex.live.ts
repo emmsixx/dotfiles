@@ -39,7 +39,7 @@ async function codexAvailable() {
 
 test(
   "Codex backend completes a live manager run",
-  { timeout: 75_000 },
+  { skip: process.env.DOTFILES_LIVE_TESTS !== "1", timeout: 75_000 },
   async (t) => {
     if (!(await codexAvailable())) {
       t.skip("codex executable is unavailable");
@@ -69,7 +69,7 @@ test(
 
 test(
   "Codex backend interrupt settles a live manager run",
-  { timeout: 30_000 },
+  { skip: process.env.DOTFILES_LIVE_TESTS !== "1", timeout: 30_000 },
   async (t) => {
     if (!(await codexAvailable())) {
       t.skip("codex executable is unavailable");

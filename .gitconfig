@@ -32,19 +32,19 @@
 # identity above. Verify with:
 #   git -C ~/repos/Work/<any-repo> config --show-origin --get user.email
 [includeIf "gitdir:~/repos/GitHub/"]
-    path = ~/.config/git/identities/github_personal.gitconfig
+    path = ~/.config/git/github_personal.gitconfig
 
 [includeIf "gitdir:~/repos/Work/"]
-    path = ~/.config/git/identities/work.gitconfig
+    path = ~/.config/git/work.gitconfig
 
 [includeIf "gitdir:~/repos/GitLab/"]
-    path = ~/.config/git/identities/gitlab.gitconfig
+    path = ~/.config/git/gitlab.gitconfig
 [credential "https://github.com"]
 	helper = 
-	helper = !/usr/bin/gh auth git-credential
+	helper = !gh auth git-credential
 [credential "https://gist.github.com"]
 	helper = 
-	helper = !/usr/bin/gh auth git-credential
+	helper = !gh auth git-credential
 [submodule]
 	recurse = true
 [filter "lfs"]

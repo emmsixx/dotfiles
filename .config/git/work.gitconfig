@@ -1,0 +1,7 @@
+# Require a local identity for this repository profile.
+[user]
+    name =
+    email =
+    useConfigOnly = true
+[include]
+    path = ~/.config/git/identities/work.gitconfig

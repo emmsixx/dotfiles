@@ -24,7 +24,8 @@ type Options struct {
 }
 
 type Runner struct {
-	Run func(name string, args ...string) error
+	Run   func(name string, args ...string) error
+	Login func() error
 }
 
 type Component struct {
@@ -35,7 +36,7 @@ type Component struct {
 }
 
 var Components = []Component{
-	{"core", "Essentials", "Core terminal tools and package-manager setup.", false},
+	{"core", "Essentials", "Core terminal tools using Homebrew, apt, or pacman.", false},
 	{"shell", "Shell", "Oh My Zsh, plugins, Starship, and shell dependencies.", false},
 	{"runtimes", "Runtimes", "Bun, pnpm, FNM, and the pinned Node.js version.", false},
 	{"agents", "Agent CLIs", "Codex, Claude Code, Pi, Firecrawl, and agent skills.", false},
@@ -63,7 +64,15 @@ func (o *Options) Normalize() error {
 		}
 		o.Repo = cwd
 	}
-	o.Repo = filepath.Clean(o.Repo)
+	var err error
+	o.Repo, err = filepath.Abs(o.Repo)
+	if err != nil {
+		return err
+	}
+	o.Home, err = filepath.Abs(o.Home)
+	if err != nil {
+		return err
+	}
 	if o.Profile == "" {
 		o.Profile = "desktop"
 	}
@@ -75,6 +84,8 @@ func (o *Options) Normalize() error {
 	}
 	return nil
 }
+
+func (o Options) canPrompt() bool { return !o.NonInteractive && ui.Interactive() }
 
 func (o Options) DefaultComponents() []string {
 	result := []string{"core", "shell", "runtimes", "agents", "agent-customization", "config", "secrets-auth"}
@@ -151,6 +162,20 @@ func (r Runner) Apply(o Options) error {
 	if err := validateRepo(o.Repo); err != nil {
 		return err
 	}
+	for _, id := range o.Components {
+		known := false
+		for _, component := range Components {
+			if component.ID == id {
+				known = true
+			}
+		}
+		if !known {
+			return fmt.Errorf("unknown component %q", id)
+		}
+		if o.Profile == "server" && (id == "desktop" || id == "t3-desktop") {
+			return fmt.Errorf("%s is unavailable for servers", id)
+		}
+	}
 	ui.Heading("Setting up dotfiles")
 	for _, component := range o.Components {
 		var err error
@@ -172,7 +197,10 @@ func (r Runner) Apply(o Options) error {
 		case "homebrew-upgrade":
 			err = r.updateHomebrew()
 		case "config":
-			err = Link(o.Repo, o.Home, r.Run)
+			err = r.initializeSubmodules(o.Repo)
+			if err == nil {
+				err = Link(o.Repo, o.Home, r.Run)
+			}
 		case "secrets-auth":
 			err = r.configureSecretsAndAuth(o)
 		case "t3-service":
@@ -196,7 +224,7 @@ func (r Runner) installCore(o Options) error {
 		return err
 	}
 	if packageManager() == "apt-get" {
-		return ensureCommandAlias("fd", "fdfind")
+		return ensureCommandAlias(o.Home, "fd", "fdfind")
 	}
 	return nil
 }
@@ -204,12 +232,11 @@ func (r Runner) installCore(o Options) error {
 func (r Runner) installShell(o Options) error {
 	zsh, err := exec.LookPath("zsh")
 	if err != nil {
-		ui.Warn("zsh is unavailable; install the Shell component's package prerequisites first")
-		return nil
+		return errors.New("zsh is unavailable; run the core component first")
 	}
 	// macOS already ships /bin/zsh as a supported login shell. Homebrew can put
 	// another zsh earlier on PATH, but chsh rejects that non-system path.
-	if runtime.GOOS != "darwin" && ui.Interactive() && needsZshLoginShell(os.Getenv("SHELL"), zsh) {
+	if runtime.GOOS != "darwin" && o.canPrompt() && needsZshLoginShell(os.Getenv("SHELL"), zsh) {
 		makeDefault := true
 		if err := ui.Confirm("Make Zsh your login shell?", "This runs chsh and may ask for your password.", &makeDefault); err != nil {
 			return err
@@ -221,9 +248,29 @@ func (r Runner) installShell(o Options) error {
 		}
 	}
 	if _, err := os.Stat(filepath.Join(o.Home, ".oh-my-zsh")); errors.Is(err, os.ErrNotExist) {
-		return r.shell("RUNZSH=no CHSH=no sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\"")
+		if err := r.shell("export RUNZSH=no CHSH=no KEEP_ZSHRC=yes; " + installerCommand("https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh", "sh")); err != nil {
+			return err
+		}
 	}
-	ui.OK("Oh My Zsh already installed")
+	for _, plugin := range []string{"zsh-autosuggestions", "zsh-syntax-highlighting"} {
+		custom := os.Getenv("ZSH_CUSTOM")
+		if custom == "" {
+			custom = filepath.Join(o.Home, ".oh-my-zsh", "custom")
+		}
+		destination := filepath.Join(custom, "plugins", plugin)
+		if info, err := os.Stat(destination); err == nil {
+			if !info.IsDir() {
+				return fmt.Errorf("plugin path %s is not a directory", destination)
+			}
+			continue
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		if err := r.Run("git", "clone", "--depth", "1", "https://github.com/zsh-users/"+plugin, destination); err != nil {
+			return err
+		}
+	}
+	ui.OK("Oh My Zsh and shell plugins are ready")
 	return nil
 }
 
@@ -233,7 +280,7 @@ func needsZshLoginShell(currentShell, zshPath string) bool {
 
 func (r Runner) installRuntimes(o Options) error {
 	if _, err := exec.LookPath("fnm"); err != nil {
-		if err := r.shell("curl -fsSL https://fnm.vercel.app/install | bash -s -- --skip-shell"); err != nil {
+		if err := r.shell(installerCommand("https://fnm.vercel.app/install", "bash", "--skip-shell")); err != nil {
 			return err
 		}
 	}
@@ -241,15 +288,20 @@ func (r Runner) installRuntimes(o Options) error {
 	if err != nil {
 		return err
 	}
-	if err := r.shell(fnmEnvironment() + "fnm install " + strings.TrimSpace(string(version)) + " --use; fnm default " + strings.TrimSpace(string(version))); err != nil {
+	if err := r.shell(fnmEnvironment() + "fnm install " + shellPath(strings.TrimSpace(string(version))) + " --use && fnm default " + shellPath(strings.TrimSpace(string(version)))); err != nil {
 		return err
 	}
-	return r.shell("command -v bun >/dev/null 2>&1 || curl -fsSL https://bun.sh/install | bash; command -v pnpm >/dev/null 2>&1 || curl -fsSL https://get.pnpm.io/install.sh | sh -")
+	for _, tool := range []struct{ name, url, shell string }{{"bun", "https://bun.sh/install", "bash"}, {"pnpm", "https://get.pnpm.io/install.sh", "sh"}} {
+		if err := r.shell("if ! command -v " + tool.name + " >/dev/null 2>&1; then " + installerCommand(tool.url, tool.shell) + "; fi"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r Runner) installAgents(o Options) error {
 	if _, err := exec.LookPath("claude"); err != nil {
-		if err := r.shell("curl -fsSL https://claude.ai/install.sh | bash"); err != nil {
+		if err := r.shell(installerCommand("https://claude.ai/install.sh", "bash")); err != nil {
 			return err
 		}
 	} else {
@@ -259,19 +311,19 @@ func (r Runner) installAgents(o Options) error {
 	// .zshrc. Installing the published package through our selected FNM Node
 	// keeps the shell configuration owned by this repository instead.
 	if err := r.nodeShell("command -v pi >/dev/null 2>&1 || npm install -g --ignore-scripts --no-fund --no-audit @earendil-works/pi-coding-agent"); err != nil {
-		ui.Warn("could not install Pi; run the Runtimes component first")
+		return fmt.Errorf("install Pi (run runtimes first): %w", err)
 	} else {
 		ui.OK("Pi is ready")
 	}
 	if _, err := exec.LookPath("codex"); err != nil {
-		if err := r.shell("curl -fsSL https://chatgpt.com/codex/install.sh | sh"); err != nil {
+		if err := r.shell(installerCommand("https://chatgpt.com/codex/install.sh", "sh")); err != nil {
 			return err
 		}
 	} else {
 		ui.OK("Codex already installed")
 	}
 	if err := r.nodeShell("npm install -g firecrawl-cli"); err != nil {
-		ui.Warn("could not install Firecrawl; run the Runtimes component first")
+		return fmt.Errorf("install Firecrawl (run runtimes first): %w", err)
 	}
 	return r.installSkills(o)
 }
@@ -297,7 +349,7 @@ func (r Runner) installDesktop(o Options) error {
 		return errors.New("desktop tools cannot be selected for the server profile")
 	}
 	if runtime.GOOS == "darwin" {
-		return r.shell("command -v brew >/dev/null && brew install --cask ghostty || true")
+		return r.Run("brew", "install", "--cask", "ghostty")
 	}
 	if runtime.GOOS == "linux" {
 		return r.installPackages([]string{"tmux", "grim", "slurp", "satty", "solaar", "wl-clipboard", "libnotify-bin", "file"})
@@ -350,9 +402,9 @@ func (r Runner) configureSecretsAndAuth(o Options) error {
 	if created {
 		ui.OK("created ~/.secrets with mode 0600")
 	}
-	if o.NonInteractive || !ui.Interactive() {
+	if !o.canPrompt() {
 		ui.Warn("run `dotfiles secrets edit` and `dotfiles auth login` from a terminal to finish onboarding")
-		return nil
+		return r.configureGitIdentities(o)
 	}
 	edit := created
 	if !created {
@@ -363,6 +415,18 @@ func (r Runner) configureSecretsAndAuth(o Options) error {
 	if edit {
 		if err := secrets.Prompt(o.Home, secrets.DefaultFields); err != nil {
 			return err
+		}
+	}
+	if err := r.configureGitIdentities(o); err != nil {
+		return err
+	}
+	if r.Login != nil {
+		login := false
+		if err := ui.Confirm("Sign in to a provider now?", "You can also run dotfiles auth login later.", &login); err != nil {
+			return err
+		}
+		if login {
+			return r.Login()
 		}
 	}
 	return nil
@@ -376,7 +440,7 @@ func (r Runner) installT3Service(o Options) error {
 		return errors.New("systemd is required for the T3 background service")
 	}
 	channel := o.T3Channel
-	if channel == "" && ui.Interactive() {
+	if channel == "" && o.canPrompt() {
 		channel = "nightly"
 		if err := ui.Select("T3 Code release channel", "Nightly is the default. Choose latest if you prefer stable releases.", []ui.Choice[string]{
 			{Label: "Nightly (default)", Value: "nightly"},
@@ -394,8 +458,7 @@ func (r Runner) installT3Service(o Options) error {
 func (r Runner) installPackages(packages []string) error {
 	manager := packageManager()
 	if manager == "" {
-		ui.Warn("no supported package manager found; install manually: " + strings.Join(packages, ", "))
-		return nil
+		return errors.New("no supported package manager found; install Homebrew on macOS, or use an apt/pacman Linux host (otherwise install the requested tools manually)")
 	}
 	available := make([]string, 0, len(packages))
 	for _, packageName := range packages {
@@ -417,9 +480,9 @@ func (r Runner) installPackages(packages []string) error {
 
 func (r Runner) shell(command string) error {
 	if zsh, err := exec.LookPath("zsh"); err == nil {
-		return r.Run(zsh, "-c", command)
+		return r.Run(zsh, "-e", "-c", command)
 	}
-	return r.Run("sh", "-c", command)
+	return r.Run("sh", "-e", "-c", command)
 }
 
 func (r Runner) nodeShell(command string) error {
@@ -427,9 +490,49 @@ func (r Runner) nodeShell(command string) error {
 }
 
 func fnmEnvironment() string {
-	// The setup runner prefers Zsh and the repository config is Zsh-first. FNM
-	// has no `sh` option; passing one prints an error before Node-related work.
-	return "export PATH=\"$HOME/.local/share/fnm:$PATH\"; eval \"$(fnm env --shell zsh)\"; "
+	shell := "bash"
+	if _, err := exec.LookPath("zsh"); err == nil {
+		shell = "zsh"
+	}
+	return "export PATH=\"$HOME/.local/share/fnm:$HOME/Library/Application Support/fnm:$HOME/.local/bin:$HOME/.bun/bin:$HOME/.local/share/pnpm:$PATH\"; fnm_env=$(fnm env --shell " + shell + "); eval \"$fnm_env\"; "
+}
+
+// Download and execute in separate checked steps. The surrounding shell runs
+// with errexit, so neither a failed HTTP request nor a failed installer can
+// be hidden by a successful command later in the sequence.
+func installerCommand(url, interpreter string, args ...string) string {
+	command := "install_tmp=$(mktemp -d); trap 'rm -rf \"$install_tmp\"' EXIT; curl -fsSL " + shellPath(url) + " -o \"$install_tmp/install\"; test -s \"$install_tmp/install\"; " + shellPath(interpreter) + " \"$install_tmp/install\""
+	for _, arg := range args {
+		command += " " + shellPath(arg)
+	}
+	return command
+}
+
+// Initialize only missing submodules; preserve already initialized checkouts,
+// including a user's local changes or deliberately checked-out revision.
+func (r Runner) initializeSubmodules(repo string) error {
+	if _, err := os.Stat(filepath.Join(repo, ".gitmodules")); errors.Is(err, os.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	output, err := exec.Command("git", "-C", repo, "submodule", "status", "--recursive").Output()
+	if err != nil {
+		return fmt.Errorf("inspect submodules: %w", err)
+	}
+	for _, line := range strings.Split(string(output), "\n") {
+		if !strings.HasPrefix(line, "-") {
+			continue
+		}
+		parts := strings.Fields(line)
+		if len(parts) < 2 {
+			return fmt.Errorf("invalid submodule status %q", line)
+		}
+		if err := r.Run("git", "-C", repo, "submodule", "update", "--init", "--recursive", "--", parts[1]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r Runner) installSkills(o Options) error {
@@ -541,17 +644,13 @@ func replacePackage(packages []string, old, replacement string) []string {
 	return result
 }
 
-func ensureCommandAlias(expected, actual string) error {
+func ensureCommandAlias(home, expected, actual string) error {
 	if _, err := exec.LookPath(expected); err == nil {
 		return nil
 	}
 	path, err := exec.LookPath(actual)
 	if err != nil {
 		return nil
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
 	}
 	bin := filepath.Join(home, ".local", "bin")
 	if err := os.MkdirAll(bin, 0o755); err != nil {

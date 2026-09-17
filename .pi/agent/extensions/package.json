@@ -6,11 +6,12 @@
     "test": "node --test --experimental-strip-types */*.test.ts && vitest run file-search/index.spec.ts",
     "check": "effect-tsgo patch && tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,json}\"",
-    "format:check": "prettier --check \"**/*.{ts,json}\""
+    "format:check": "prettier --check \"**/*.{ts,json}\"",
+    "test:integration": "node --test --experimental-strip-types subagents/*.live.ts"
   },
   "keywords": [],
   "type": "module",
-  "private": "true",
+  "private": true,
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.216",
     "@effect/platform-node": "4.0.0-beta.99",

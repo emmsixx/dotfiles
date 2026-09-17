@@ -54,7 +54,7 @@ func Discover(home string) ([]Account, error) {
 			continue
 		}
 		path := filepath.Join(home, name)
-		info, err := os.Stat(path)
+		info, err := os.Lstat(path)
 		if err != nil || !info.IsDir() {
 			continue
 		}
@@ -102,7 +102,15 @@ func Create(home, name string) (Account, error) {
 // private, logs/memories/tmp stay local, and every other existing root entry is
 // shared from the main home.
 func SyncShared(home, accountHome string) error {
+	if err := ValidateHome(accountHome, false); err != nil {
+		return err
+	}
 	main := MainHome(home)
+	if info, err := os.Lstat(main); err == nil && !info.IsDir() {
+		return fmt.Errorf("%s must be a real directory", main)
+	} else if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
 	entries, err := os.ReadDir(main)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -128,28 +136,40 @@ func SyncShared(home, accountHome string) error {
 	return nil
 }
 
-func EnsurePrivateAuth(account Account) error {
-	authPath := filepath.Join(account.Home, "auth.json")
-	info, err := os.Lstat(authPath)
-	if errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("%s was not created; rerun login and complete device authentication", authPath)
-	}
+// ValidateHome runs before launching a provider process. Login alone may use
+// a home without auth.json; existing auth and cache paths must be real files.
+func ValidateHome(home string, requireAuth bool) error {
+	info, err := os.Lstat(home)
 	if err != nil {
 		return err
 	}
-	if info.Mode()&fs.ModeSymlink != 0 {
-		return fmt.Errorf("%s must be a real private file, not a symlink", authPath)
+	if !info.IsDir() {
+		return fmt.Errorf("%s must be a real directory, not a symlink", home)
 	}
-	if err := os.Chmod(authPath, 0o600); err != nil {
-		return err
-	}
-	cachePath := filepath.Join(account.Home, "models_cache.json")
-	if cache, err := os.Lstat(cachePath); err == nil && cache.Mode()&fs.ModeSymlink != 0 {
-		return fmt.Errorf("%s must be private, not a symlink", cachePath)
-	} else if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
+	for _, name := range []string{"auth.json", "models_cache.json"} {
+		path := filepath.Join(home, name)
+		info, err := os.Lstat(path)
+		if errors.Is(err, os.ErrNotExist) {
+			if name == "auth.json" && requireAuth {
+				return fmt.Errorf("%s is missing; complete `dotfiles auth codex login` first", path)
+			}
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("%s must be a real private file, not a symlink or directory", path)
+		}
 	}
 	return nil
+}
+
+func EnsurePrivateAuth(account Account) error {
+	if err := ValidateHome(account.Home, true); err != nil {
+		return err
+	}
+	return os.Chmod(filepath.Join(account.Home, "auth.json"), 0o600)
 }
 
 func hasPrivateAuth(home string) bool {

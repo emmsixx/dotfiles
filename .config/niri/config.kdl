@@ -13,5 +13,4 @@ include "./startup.kdl"
 include "./window-rules.kdl"
 include "./binds.kdl"
 
-// Static Matugen colors
-include "./colors.kdl"
+// Colors are defined in layout.kdl; no generated DMS/Matugen files are required.

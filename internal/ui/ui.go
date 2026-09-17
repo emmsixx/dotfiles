@@ -6,6 +6,7 @@ import (
 
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/term"
 )
 
 var (
@@ -20,8 +21,7 @@ type Choice[T comparable] struct {
 }
 
 func Interactive() bool {
-	info, err := os.Stdin.Stat()
-	return err == nil && info.Mode()&os.ModeCharDevice != 0
+	return term.IsTerminal(os.Stdin.Fd()) && term.IsTerminal(os.Stderr.Fd())
 }
 
 func Heading(text string) { fmt.Fprintln(os.Stderr, titleStyle.Render(text)) }
