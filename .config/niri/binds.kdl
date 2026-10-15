@@ -39,8 +39,8 @@ binds {
     // HYPER + Z -> Zed Editor
     Mod+Alt+Ctrl+Shift+Z { spawn "zeditor"; }
 
-    // HYPER + M -> Cider
-    Mod+Alt+Ctrl+Shift+M { spawn "cider"; }
+    // HYPER + M -> Feishin
+    Mod+Alt+Ctrl+Shift+M { spawn "flatpak" "run" "org.jeffvli.feishin"; }
 
     // Super + Shift + Delete -> Clear Notifications
     Mod+Shift+Delete { spawn "swaync-client" "-C"; }
