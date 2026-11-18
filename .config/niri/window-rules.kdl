@@ -153,3 +153,10 @@ window-rule {
     match app-id=r"(polkit|org.kde.polkit|sway-audio-idle-inhibit-)"
     open-floating true
 }
+
+// Enable VRR for games (outputs use on-demand VRR).
+window-rule {
+    match app-id=r#"^steam_app_"#
+    match app-id="gamescope"
+    variable-refresh-rate true
+}

@@ -42,6 +42,9 @@ output "DP-2" {
     // 1920x1080 at ~144Hz
     mode "1920x1080@143.855"
 
+    // VRR only when a window rule requests it (games)
+    variable-refresh-rate on-demand=true
+
     // Position: 0, 0 (Top-Left corner)
     position x=0 y=0
     
@@ -53,6 +56,9 @@ output "DP-2" {
 output "DP-1" {
     // 2560x1440 at ~165Hz
     mode "2560x1440@180.002"
+
+    // VRR only when a window rule requests it (games)
+    variable-refresh-rate on-demand=true
 
     // Position: Placed directly to the right of the 1920px wide MSI monitor
     position x=1920 y=0
