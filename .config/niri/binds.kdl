@@ -49,7 +49,7 @@ binds {
     Mod+Alt+Ctrl+Shift+E { spawn "thunderbird"; }
 
     // HYPER + S -> Steam
-    Mod+Alt+Ctrl+Shift+S { spawn "steam"; }
+    Mod+Alt+Ctrl+Shift+S { spawn "/home/six/.local/bin/steam"; }
 
     // --- Terminal & Files ---
     // Super + Enter -> Terminal

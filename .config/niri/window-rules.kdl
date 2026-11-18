@@ -85,9 +85,19 @@ window-rule {
 // --- 🛍️ Game Launchers (Workspace 5) ---
 window-rule {
     match app-id=r"([Ss]team|[Ll]utris|heroic)"
+    exclude app-id="^steam$" title="^Steam Input On-screen Keyboard$"
     // Exclude Steam Friends/Settings (which usually have different titles)
     match title=r"^([Ss]team)$" 
     open-on-workspace "5"
+}
+
+// Steam's keyboard belongs beside the app receiving its controller input.
+// steam-keyboard-fix.service makes it a toplevel instead of a satellite popup.
+window-rule {
+    match app-id="^steam$" title="^Steam Input On-screen Keyboard$"
+    open-floating true
+    open-focused false
+    default-floating-position x=0 y=20 relative-to="bottom"
 }
 
 // --- 📧 Email (Workspace 7) ---
