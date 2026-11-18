@@ -30,7 +30,8 @@ spawn-at-startup "pactl" "load-module" "module-virtual-source" "source_name=Virt
 // spawn-at-startup "dms" "run"
 
 // Vicinae (Sidebar/Widget Server)
-spawn-at-startup "vicinae" "server"
+// Started by vicinae.service; launching here would create a second tray icon.
+// spawn-at-startup "vicinae" "server"
 
 // System Tray Icons
 spawn-at-startup "nm-applet" "--indicator"
